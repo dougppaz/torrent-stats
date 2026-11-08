@@ -2,57 +2,57 @@ from __future__ import annotations
 
 from typing import Any
 
-import httpx
+import couchdb
 from torrent_stats.settings import couchdb_settings
 
 
 class CouchDBClient:
     def __init__(self) -> None:
-        self.base_url = couchdb_settings.couchdb_url.rstrip("/")
+        self.server = couchdb.Server(couchdb_settings.couchdb_url)
         self.db_name = couchdb_settings.couchdb_db_name
-        self.url = f"{self.base_url}/{self.db_name}"
 
-    async def ensure_db_exists(self) -> None:
-        async with httpx.AsyncClient() as client:
-            response = await client.get(self.url)
-            if response.status_code == 404:
-                await client.put(self.url)
+    def get_db(self) -> couchdb.Database:
+        try:
+            return self.server[self.db_name]
+        except couchdb.ResourceNotFound:
+            return self.server.create(self.db_name)
 
-    async def get_doc(self, doc_id: str) -> dict[str, Any] | None:
-        async with httpx.AsyncClient() as client:
-            response = await client.get(f"{self.url}/{doc_id}")
-            if response.status_code == 200:
-                data: dict[str, Any] = response.json()
-                return data
-            return None
+    def ensure_db_exists(self) -> None:
+        self.get_db()
 
-    async def save_doc(self, doc: dict[str, Any]) -> dict[str, Any]:
+    def get_doc(self, doc_id: str) -> dict[str, Any] | None:
+        db = self.get_db()
+        doc = db.get(doc_id)
+        if doc:
+            return dict(doc)
+        return None
+
+    def save_doc(self, doc: dict[str, Any]) -> dict[str, Any]:
+        db = self.get_db()
         doc_id = doc.get("_id") or doc.get("id")
         if doc_id and "_id" not in doc:
             doc["_id"] = doc_id
 
-        async with httpx.AsyncClient() as client:
-            if doc.get("_id"):
-                existing = await self.get_doc(doc["_id"])
-                if existing and "_rev" in existing:
-                    doc["_rev"] = existing["_rev"]
-                response = await client.put(f"{self.url}/{doc['_id']}", json=doc)
+        if doc.get("_id") and doc["_id"] in db:
+            existing = db.get(doc["_id"])
+            if existing and "_rev" in existing:
+                doc["_rev"] = existing["_rev"]
+            doc_id_saved, rev = db.save(doc)
+            return {"id": doc_id_saved, "rev": rev, "ok": True}
+        else:
+            if "_id" in doc:
+                doc_id = doc["_id"]
+                del doc["_id"]
+                doc_id_saved, rev = db.save(doc)
+                return {"id": doc_id_saved, "rev": rev, "ok": True}
             else:
-                response = await client.post(self.url, json=doc)
-            response.raise_for_status()
-            res_data: dict[str, Any] = response.json()
-            return res_data
+                doc_id_saved, rev = db.save(doc)
+                return {"id": doc_id_saved, "rev": rev, "ok": True}
 
-    async def find_by_selector(self, selector: dict[str, Any]) -> list[dict[str, Any]]:
-        async with httpx.AsyncClient() as client:
-            response = await client.post(
-                f"{self.url}/_find", json={"selector": selector}
-            )
-            if response.status_code == 200:
-                res_json: dict[str, Any] = response.json()
-                docs: list[dict[str, Any]] = res_json.get("docs", [])
-                return docs
-            return []
+    def find_by_selector(self, selector: dict[str, Any]) -> list[dict[str, Any]]:
+        db = self.get_db()
+        result = db.find({"selector": selector})
+        return [dict(doc) for doc in result]
 
 
 couchdb_client = CouchDBClient()

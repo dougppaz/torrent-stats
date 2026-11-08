@@ -160,6 +160,18 @@ files = [
 ]
 
 [[package]]
+name = "couchdb"
+version = "1.2"
+description = "Python library for working with CouchDB"
+optional = false
+python-versions = "*"
+groups = ["main"]
+files = [
+    {file = "CouchDB-1.2-py2.py3-none-any.whl", hash = "sha256:13a28a1159c49f8346732e8724b9a4d65cba54bec017c4a7eeb1499fe88151d1"},
+    {file = "CouchDB-1.2.tar.gz", hash = "sha256:1386a1a43f25bed3667e3b805222054940d674fa1967fa48e9d2012a18630ab7"},
+]
+
+[[package]]
 name = "distlib"
 version = "0.4.4"
 description = "Distribution utilities"
@@ -1119,4 +1131,4 @@ python-discovery = ">=1.6.1"
 [metadata]
 lock-version = "2.1"
 python-versions = ">=3.11,<4.0"
-content-hash = "276dd4d929ec664e375397da28c665a2095ea4610ed826f0c2afe359263fdcd7"
+content-hash = "baffaf9c22248d347ad8616df6ee5189b06204c8c5a056fb39b50396c216d567"
