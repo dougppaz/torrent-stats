@@ -1,0 +1,17 @@
+{
+  "version": 1,
+  "skills": {
+    "tlc-plan": {
+      "source": "tech-leads-club/agent-skills",
+      "sourceType": "github",
+      "skillPath": "packages/skills-catalog/skills/(development)/tlc-plan/SKILL.md",
+      "computedHash": "cd3cf0fb80d90b972e8f21ae9b71c48868fbe012cc9d9cff3294de9e33ff8162"
+    },
+    "tlc-spec-driven": {
+      "source": "tech-leads-club/agent-skills",
+      "sourceType": "github",
+      "skillPath": "packages/skills-catalog/skills/(development)/tlc-spec-driven/SKILL.md",
+      "computedHash": "7679e91e718f9100e6a98915e0a55f0caba33cfa55566ca2e5fad1da46bb801a"
+    }
+  }
+}
