@@ -1,9 +1,9 @@
 from __future__ import annotations
 
 import os
-from typing import Any
+from typing import Any, Literal
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from pydantic_settings import BaseSettings
 
 
@@ -52,13 +52,13 @@ class TrackersSettings(BaseSettings):
 
 
 class StorageProfileConfig(BaseModel):
-    type: str = "ftp"
-    config: dict[str, Any] = {}
+    type: Literal["ftp"] = "ftp"
+    config: dict[str, Any] = Field(default_factory=dict)
 
 
 class StorageProfilesSettings(BaseSettings):
-    profiles: dict[str, StorageProfileConfig] = {}
     current_storage_profile: str = "default"
+    profiles: dict[str, StorageProfileConfig] = {}
 
     def __init__(self, **kwargs: Any) -> None:
         super().__init__(**kwargs)
@@ -71,10 +71,8 @@ class StorageProfilesSettings(BaseSettings):
                     profile_key, param = parts
                     if profile_key not in profiles_dict:
                         profiles_dict[profile_key] = {
-                            "config": {
-                                "url_template": "https://download.asdf.com/{file_path}"
-                            },
                             "type": "ftp",
+                            "config": {},
                         }
 
                     if param == "type":
@@ -88,7 +86,9 @@ class StorageProfilesSettings(BaseSettings):
                 "config": {"url_template": "https://download.asdf.com/{file_path}"},
             }
 
-        self.profiles = {k: StorageProfileConfig(**v) for k, v in profiles_dict.items()}
+        self.profiles = {
+            k: StorageProfileConfig.model_validate(v) for k, v in profiles_dict.items()
+        }
 
     class Config:
         env_file = ".env"
