@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import os
-from typing import Any, Literal
+from typing import Any
 
 from pydantic import BaseModel, Field
 from pydantic_settings import BaseSettings
@@ -43,7 +43,7 @@ class TrackersSettings(BaseSettings):
 
 
 class StorageProfileConfig(BaseModel):
-    type: Literal["ftp"] = "ftp"
+    type: str = "ftp"
     config: dict[str, Any] = Field(default_factory=dict)
 
 
