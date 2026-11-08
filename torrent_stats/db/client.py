@@ -33,6 +33,9 @@ class CouchDBClient:
         if doc_id and "_id" not in doc:
             doc["_id"] = doc_id
 
+        if "_rev" in doc and not doc["_rev"]:
+            del doc["_rev"]
+
         if doc.get("_id") and doc["_id"] in db:
             existing = db.get(doc["_id"])
             if existing and "_rev" in existing:
@@ -40,14 +43,8 @@ class CouchDBClient:
             doc_id_saved, rev = db.save(doc)
             return {"id": doc_id_saved, "rev": rev, "ok": True}
         else:
-            if "_id" in doc:
-                doc_id = doc["_id"]
-                del doc["_id"]
-                doc_id_saved, rev = db.save(doc)
-                return {"id": doc_id_saved, "rev": rev, "ok": True}
-            else:
-                doc_id_saved, rev = db.save(doc)
-                return {"id": doc_id_saved, "rev": rev, "ok": True}
+            doc_id_saved, rev = db.save(doc)
+            return {"id": doc_id_saved, "rev": rev, "ok": True}
 
     def find_by_selector(self, selector: dict[str, Any]) -> list[dict[str, Any]]:
         db = self.get_db()

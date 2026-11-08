@@ -35,9 +35,12 @@ def test_couchdb_client(mock_server_cls):
     res2 = client.save_doc({"name": "new"})
     assert res2["ok"] is True
 
-    # Test save_doc with id but no _id
-    res3 = client.save_doc({"id": "doc2", "name": "new2"})
-    assert res3["ok"] is True
+    # Test save_doc with custom _id when doc not in db and _rev is None
+    mock_db.__contains__.return_value = False
+    mock_db.save.return_value = ("custom-id", "1-rev")
+    res4 = client.save_doc({"_id": "custom-id", "name": "new3", "_rev": None})
+    assert res4["ok"] is True
+    assert res4["id"] == "custom-id"
 
     # Test find_by_selector
     mock_db.find.return_value = [{"_id": "doc1"}]
