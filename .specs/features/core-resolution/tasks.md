@@ -10,7 +10,7 @@ Each task is atomic, testable, and concludes with a verification gate and a git 
   - **Gate**: CouchDB repository abstraction using `couchdb-python` supporting `TorrentMetadata` (snake_case fields, `storage_params`) and hashed `WorkerKey` (HMAC-SHA256 with salt).
   - **Commit**: `feat(api): implement CouchDB storage repository abstraction and salted worker key hashing`
 
-- [ ] **Task 3: Redis Hit Counter & Sliding Window Sync**
+- [x] **Task 3: Redis Hit Counter & Sliding Window Sync**
   - **Gate**: Hourly-bucketed Redis hit tracking (12h TTL sliding window) synced to CouchDB `total_hits` and `last_hit_at` upon calling `GET /torrents/{hash}`.
   - **Commit**: `feat(api): implement Redis sliding-window hit counter and CouchDB synchronization`
 
