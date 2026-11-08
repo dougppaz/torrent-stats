@@ -39,15 +39,16 @@ class StorageManager:
 
         fs_type = profile.type
         fs_config = profile.config.copy()
-        fs_config.pop("url_template", None)
+        url_template = fs_config.pop("url_template", None)
+        if not url_template:
+            raise ValueError(
+                f"Storage profile '{profile_key}' is missing 'url_template' in config."
+            )
 
         fs = fsspec.filesystem(fs_type, **fs_config)
         with fs.open(file_path, "wb") as f:
             f.write(file_bytes)
 
-        url_template = profile.config.get(
-            "url_template", "https://download.asdf.com/{file_path}"
-        )
         download_url = str(url_template).format(**storage_params)
 
         return profile_key, storage_params, download_url
@@ -60,9 +61,9 @@ class StorageManager:
         profile = storage_profiles_settings.profiles.get(profile_key)
         if not profile:
             return None
-        url_template = profile.config.get(
-            "url_template", "https://download.asdf.com/{file_path}"
-        )
+        url_template = profile.config.get("url_template")
+        if not url_template:
+            return None
         try:
             url: str = str(url_template).format(**storage_params)
             return url

@@ -74,7 +74,7 @@ class StorageProfilesSettings(BaseSettings):
         if not profiles_dict:
             profiles_dict["default"] = {
                 "type": "ftp",
-                "config": {"url_template": "https://download.asdf.com/{file_path}"},
+                "config": {},
             }
 
         self.profiles = {
