@@ -15,7 +15,15 @@ Instructions for coding agents working on **torrent-stats**.
 - **Unit Tests & Coverage**: Run `poetry run pytest` on every change. All code changes must maintain **at least 90% test coverage** (`--cov-fail-under=90`).
 - **Pre-commit**: Configured via `.pre-commit-config.yaml`. Run `pre-commit install` during setup.
 
-## Directives
+## Workflow & Changes
+
+- **Flow for Features & Fixes**: For any new implementation or bug fix, follow this workflow:
+  1. Confirm with the user at the start of a session whether to proceed with this workflow. Once confirmed, continue.
+  2. Create a new branch starting from an updated `main`.
+  3. Implement using specs and TLC skills (`tlc-spec-driven`, etc.) when applicable.
+  4. Commit changes atomically with passing quality gates.
+  5. Push the branch and open a Merge Request (Pull Request) using the GitHub CLI (`gh pr create`).
+
 
 - **Specifications are binding**: Feature shape and acceptance criteria live in `.specs/features/core-resolution/plan.md` (Approved: `user: "yes"`). API contracts live in `api/openapi.yaml`.
 - **Atomic implementation**: Build strictly slice by slice. Verify every check against the plan.
