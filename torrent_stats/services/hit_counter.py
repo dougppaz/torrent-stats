@@ -3,9 +3,9 @@ from __future__ import annotations
 from datetime import UTC, datetime, timedelta
 
 import redis
+from torrent_stats.db.models import TorrentMetadata
 from torrent_stats.db.repository import TorrentMetadataRepository
 from torrent_stats.settings import redis_settings
-from torrent_stats.db.models import TorrentMetadata
 
 
 class HitCounterService:
