@@ -21,18 +21,21 @@ def get_torrent(
     ] = None,
 ):
     total_hits, last_hit_at = hit_counter_service.record_hit(hash)
+    # The current request timestamp acts as both the last hit time and the creation timestamp for enqueued tasks
+    current_request_timestamp = last_hit_at
+
     torrent = torrent_repo.find_by_info_hash(hash)
 
     if not torrent:
         torrent = TorrentMetadata(
             info_hash=hash,
             total_hits=total_hits,
-            last_hit_at=last_hit_at,
+            last_hit_at=current_request_timestamp,
         )
         torrent_repo.save(torrent)
     else:
         torrent.total_hits = total_hits
-        torrent.last_hit_at = last_hit_at
+        torrent.last_hit_at = current_request_timestamp
         torrent_repo.save(torrent)
 
     existing_tasks = task_repo.find_by_info_hash(hash)
@@ -42,7 +45,7 @@ def get_torrent(
                 info_hash=hash,
                 task_type="scrape_torrent",
                 status="pending",
-                created_at=last_hit_at,
+                created_at=current_request_timestamp,
             )
         )
 
@@ -61,7 +64,7 @@ def get_torrent(
                             task_type="scrape_stats",
                             status="pending",
                             tracker_url=tr,
-                            created_at=last_hit_at,
+                            created_at=current_request_timestamp,
                         )
                     )
         torrent_repo.save(torrent)
