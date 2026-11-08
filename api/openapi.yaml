@@ -39,15 +39,13 @@ paths:
                   total_size:
                     type: integer
                     nullable: true
-                  torrent_storage_ref:
-                    type: string
-                    nullable: true
                   storage_profile_key:
                     type: string
                     nullable: true
-                  file_path:
-                    type: string
+                  storage_params:
+                    type: object
                     nullable: true
+                    description: Dictionary of parameters used with storage profile template to construct download URL
                   download_url:
                     type: string
                     nullable: true
@@ -141,7 +139,7 @@ paths:
   /worker/torrents:
     post:
       summary: Upload raw .torrent file and metadata (handled by API agnostic storage)
-      description: Called by remote workers upon successfully resolving and downloading a .torrent file. API uploads to storage profile and records profile key & file path.
+      description: Called by remote workers upon successfully resolving and downloading a .torrent file. API uploads to storage profile and records profile key & storage parameters.
       parameters:
         - name: X-Worker-Key
           in: header
@@ -166,6 +164,12 @@ paths:
                   type: string
                 total_size:
                   type: integer
+                storage_profile_key:
+                  type: string
+                  description: Optional explicit storage profile key to use
+                storage_params:
+                  type: string
+                  description: JSON stringified dictionary of parameters for the storage template
                 torrent_file:
                   type: string
                   format: binary

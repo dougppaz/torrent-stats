@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from datetime import UTC, datetime
+from typing import Any
 
 from pydantic import BaseModel, Field
 
@@ -16,9 +17,8 @@ class TorrentMetadata(BaseModel):
     info_hash: str
     name: str | None = None
     total_size: int | None = None
-    torrent_storage_ref: str | None = None
     storage_profile_key: str | None = None
-    file_path: str | None = None
+    storage_params: dict[str, Any] | None = None
     total_hits: int = 0
     last_hit_at: str | None = None
     files: list[TorrentFile] | None = None
