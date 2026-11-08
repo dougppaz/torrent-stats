@@ -43,7 +43,7 @@ class TrackersSettings(BaseSettings):
 
 
 class StorageProfileConfig(BaseModel):
-    type: str = "ftp"
+    type: str = "local"
     config: dict[str, Any] = Field(default_factory=dict)
 
 
@@ -62,7 +62,7 @@ class StorageProfilesSettings(BaseSettings):
                     profile_key, param = parts
                     if profile_key not in profiles_dict:
                         profiles_dict[profile_key] = {
-                            "type": "ftp",
+                            "type": "local",
                             "config": {},
                         }
 
@@ -73,10 +73,8 @@ class StorageProfilesSettings(BaseSettings):
 
         if not profiles_dict:
             profiles_dict["default"] = {
-                "type": "ftp",
-                "config": {
-                    "download_url_template": "https://download.asdf.com/{file_path}"
-                },
+                "type": "local",
+                "config": {},
             }
 
         self.profiles = {

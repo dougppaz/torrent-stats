@@ -22,7 +22,6 @@ class LocalStorage(BaseStorage):
         )
         target_path = str(template).format(info_hash=info_hash)
 
-        # Ensure parent directory exists
         parent_dir = os.path.dirname(target_path)
         if parent_dir:
             self.fs.makedirs(parent_dir, exist_ok=True)
@@ -35,4 +34,7 @@ class LocalStorage(BaseStorage):
         target_path = storage_params.get("target_path")
         if not target_path:
             raise ValueError("Storage params are missing 'target_path'.")
+        url_template = self.profile.config.get("download_url_template")
+        if url_template:
+            return str(url_template).format(**storage_params)
         return os.path.abspath(str(target_path))

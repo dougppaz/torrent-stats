@@ -4,7 +4,7 @@ Resolving info hashes into .torrent files, detailed file trees, and live peer/se
 
 ## Architecture & Stack
 
-- **API (`torrent_stats/` - Python)**: FastAPI + CouchDB (Repository pattern) + Redis (12h hourly hit buckets synced to CouchDB `total_hits`/`last_hit_at`, task leases). Agnostic storage profiles (FTP first via `fsspec`, recording profile key & storage parameters, rendering download URLs via profile templates).
+- **API (`torrent_stats/` - Python)**: FastAPI + CouchDB (Repository pattern) + Redis (12h hourly hit buckets synced to CouchDB `total_hits`/`last_hit_at`, task leases). Agnostic storage profiles (Local storage default via `fsspec`, recording profile key & storage parameters, rendering download URLs via absolute local paths or profile templates).
 - **Worker (`worker/` - Go)**: Standalone binary communicating via authenticated HTTP API endpoints (`X-Worker-Key`) with ACK/leases and automatic tracker pruning after 3 consecutive failures.
 - **API Specification**: Defined in `api/openapi.yaml`.
 
@@ -73,4 +73,4 @@ The API service can be configured using the following environment variables (or 
 | `WORKER_TASK_LEASE_SECONDS` | `300` (5 minutes) | Task lease/ACK timeout for active workers |
 | `WORKER_KEY_SALT` | `change-this-salt-in-production` | Salt used for secure HMAC-SHA256 hashing of worker API keys |
 | `CURRENT_STORAGE_PROFILE` | `default` | Active storage profile key to use for uploads |
-| `STORAGE_PROFILE_[KEY]_[PARAM]` | *none* | Dynamic storage profile configuration (e.g., `STORAGE_PROFILE_FTP_TYPE=ftp`, `STORAGE_PROFILE_FTP_URL_TEMPLATE=https://download.asdf.com/{file_path}`) |
+| `STORAGE_PROFILE_[KEY]_[PARAM]` | *none* | Dynamic storage profile configuration (e.g., `STORAGE_PROFILE_LOCAL_TYPE=local`, `STORAGE_PROFILE_LOCAL_TARGET_PATH_TEMPLATE=.torrents/{info_hash}.torrent`) |
