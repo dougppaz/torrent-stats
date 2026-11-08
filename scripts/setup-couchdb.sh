@@ -5,7 +5,7 @@ COUCHDB_URL=${1:-"http://admin:admin@localhost:5984"}
 echo "Checking CouchDB cluster setup status at ${COUCHDB_URL}..."
 STATUS=$(curl -s "${COUCHDB_URL}/_cluster_setup/status")
 
-if echo "$STATUS" | grep -q 'single_node_enabled\|cluster_enabled'; then
+if echo "$STATUS" | grep -q 'single_node_enabled'; then
   echo "CouchDB is already configured: $STATUS"
 else
   echo "Setting up CouchDB as a single node..."
