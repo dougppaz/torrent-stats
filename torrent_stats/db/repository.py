@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from typing import Generic, TypeVar
 
+import couchdb
 from pydantic import BaseModel
 from torrent_stats.db.client import CouchDBClient, couchdb_client
 from torrent_stats.db.crypto import hash_worker_key
@@ -89,6 +90,34 @@ class TaskRepository(BaseRepository[TaskDocument]):
     def __init__(self) -> None:
         super().__init__(TaskDocument)
         self.client = CouchDBClient(db_name=f"{couchdb_settings.couchdb_db_name}_tasks")
+        self.ensure_view_exists()
+
+    def ensure_view_exists(self) -> None:
+        try:
+            db = self.client.get_db()
+            design_id = "_design/tasks"
+            doc = db.get(design_id)
+            view_map = """
+            function(doc) {
+                if (doc.status === 'pending' || doc.status === 'claimed' || doc.status === 'scraping') {
+                    emit(doc.status, null);
+                }
+            }
+            """
+            if not doc:
+                db.save({"_id": design_id, "views": {"by_status": {"map": view_map}}})
+            elif "views" not in doc or "by_status" not in doc["views"]:
+                doc["views"] = {"by_status": {"map": view_map}}
+                db.save(doc)
+        except (
+            couchdb.http.ServerError,
+            couchdb.http.ResourceNotFound,
+            ConnectionError,
+            OSError,
+            ValueError,
+            KeyError,
+        ):
+            pass
 
     def find_by_info_hash(self, info_hash: str) -> list[TaskDocument]:
         docs = self.client.find_by_selector({"info_hash": info_hash})
@@ -99,6 +128,23 @@ class TaskRepository(BaseRepository[TaskDocument]):
         return [TaskDocument.model_validate(d) for d in docs if d]
 
     def find_claimable(self) -> list[TaskDocument]:
-        db = self.client.get_db()
-        docs = [db.get(doc_id) for doc_id in db if not doc_id.startswith("_")]
-        return [TaskDocument.model_validate(d) for d in docs if d is not None]
+        try:
+            db = self.client.get_db()
+            result = db.view(
+                "tasks/by_status",
+                keys=["pending", "claimed", "scraping"],
+                include_docs=True,
+            )
+            docs = [row.doc for row in result if row.doc is not None]
+            return [TaskDocument.model_validate(dict(d)) for d in docs]
+        except (
+            couchdb.http.ServerError,
+            couchdb.http.ResourceNotFound,
+            ConnectionError,
+            OSError,
+            ValueError,
+            KeyError,
+        ):
+            db = self.client.get_db()
+            docs = [db.get(doc_id) for doc_id in db if not doc_id.startswith("_")]
+            return [TaskDocument.model_validate(d) for d in docs if d is not None]
