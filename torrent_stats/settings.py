@@ -32,6 +32,7 @@ class WorkerSettings(BaseSettings):
     worker_stats_cooldown_seconds: int = 6 * 3600
     worker_task_lease_seconds: int = 300
     worker_key_salt: str = "change-this-salt-in-production"
+    worker_allow_any_key: bool = False
 
     model_config = {"env_file": ".env", "extra": "ignore"}
 

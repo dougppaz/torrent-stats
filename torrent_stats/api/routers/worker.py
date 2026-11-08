@@ -47,6 +47,8 @@ def verify_worker_key(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Missing X-Worker-Key header",
         )
+    if worker_settings.worker_allow_any_key:
+        return x_worker_key
     worker_key = worker_key_repo.find_by_key_hash(x_worker_key)
     if not worker_key:
         raise HTTPException(

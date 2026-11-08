@@ -26,6 +26,18 @@ def test_worker_unauthorized(mock_worker_key_repo):
     assert response2.status_code == 401
 
 
+@patch("torrent_stats.api.routers.worker.worker_settings")
+@patch("torrent_stats.api.routers.worker.task_repo")
+def test_worker_allow_any_key(mock_task_repo, mock_worker_settings):
+    mock_worker_settings.worker_allow_any_key = True
+    mock_task_repo.find_claimable.return_value = []
+
+    response = client.post(
+        "/worker/tasks/claim", headers={"X-Worker-Key": "any-random-key"}
+    )
+    assert response.status_code == 204
+
+
 @patch("torrent_stats.api.routers.worker.worker_key_repo")
 @patch("torrent_stats.api.routers.worker.task_repo")
 def test_worker_claim_task_no_content(mock_task_repo, mock_worker_key_repo):
