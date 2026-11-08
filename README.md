@@ -17,7 +17,7 @@ Resolving info hashes into .torrent files, detailed file trees, and live peer/se
 - Python 3.11+ / 3.13+
 - Poetry
 - Go 1.21+ (for worker)
-- Docker (optional)
+- Docker & Docker Compose
 
 ### Running Locally
 
@@ -36,14 +36,15 @@ Resolving info hashes into .torrent files, detailed file trees, and live peer/se
    curl http://localhost:8000/health
    ```
 
-### Running with Docker
+### Running with Docker Compose (API + CouchDB + Redis)
 
-1. Build the Docker image:
-   ```bash
-   docker build -t torrent-stats-api .
-   ```
+To run the complete stack locally with Docker Compose:
 
-2. Run the container:
-   ```bash
-   docker run -p 8000:8000 torrent-stats-api
-   ```
+```bash
+docker compose up --build
+```
+
+This will spin up:
+- **API** on `http://localhost:8000`
+- **CouchDB** on `http://localhost:5984`
+- **Redis** on `redis://localhost:6379`

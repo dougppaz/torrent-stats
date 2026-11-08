@@ -1,20 +1,27 @@
-FROM python:3.13-slim
+# Stage 1: Build dependencies
+FROM python:3.13-slim AS builder
 
 WORKDIR /app
 
-# Install poetry
 RUN pip install --no-cache-dir poetry
 
-# Copy dependency specifications
 COPY pyproject.toml poetry.lock ./
 
-# Install dependencies (without dev)
+# Install dependencies globally in the builder stage
 RUN poetry config virtualenvs.create false \
     && poetry install --only main --no-interaction --no-ansi
 
-# Copy source code
+# Stage 2: Runtime image
+FROM python:3.13-slim AS runtime
+
+WORKDIR /app
+
+# Copy installed python packages and binaries from builder
+COPY --from=builder /usr/local/lib/python3.13/site-packages /usr/local/lib/python3.13/site-packages
+COPY --from=builder /usr/local/bin /usr/local/bin
+
+# Copy application source code (excluding api specification folder)
 COPY torrent_stats/ torrent_stats/
-COPY api/ api/
 
 EXPOSE 8000
 
