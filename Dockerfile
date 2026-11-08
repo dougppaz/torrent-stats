@@ -5,7 +5,8 @@ WORKDIR /app
 
 RUN pip install --no-cache-dir poetry
 
-COPY pyproject.toml poetry.lock ./
+COPY pyproject.toml poetry.lock README.md ./
+COPY torrent_stats ./torrent_stats
 
 # Install dependencies globally in the builder stage
 RUN poetry config virtualenvs.create false \
