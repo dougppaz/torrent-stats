@@ -1,9 +1,9 @@
 from __future__ import annotations
 
 import os
-from typing import Any, Literal
+from typing import Any
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel
 from pydantic_settings import BaseSettings
 
 
@@ -52,16 +52,17 @@ class TrackersSettings(BaseSettings):
 
 
 class StorageProfileConfig(BaseModel):
-    type: Literal["ftp"] = "ftp"
-    config: dict[str, Any] = Field(default_factory=dict)
+    type: str = "ftp"
+    config: dict[str, Any] = {}
 
 
 class StorageProfilesSettings(BaseSettings):
-    current_storage_profile: str = "default"
     profiles: dict[str, StorageProfileConfig] = {}
+    current_storage_profile: str = "default"
 
     def __init__(self, **kwargs: Any) -> None:
         super().__init__(**kwargs)
+        self.current_storage_profile = os.getenv("CURRENT_STORAGE_PROFILE", "default")
         profiles_dict: dict[str, dict[str, Any]] = {}
         for key, value in os.environ.items():
             if key.startswith("STORAGE_PROFILE_"):
@@ -70,8 +71,10 @@ class StorageProfilesSettings(BaseSettings):
                     profile_key, param = parts
                     if profile_key not in profiles_dict:
                         profiles_dict[profile_key] = {
+                            "config": {
+                                "url_template": "https://download.asdf.com/{file_path}"
+                            },
                             "type": "ftp",
-                            "config": {},
                         }
 
                     if param == "type":
@@ -82,12 +85,10 @@ class StorageProfilesSettings(BaseSettings):
         if not profiles_dict:
             profiles_dict["default"] = {
                 "type": "ftp",
-                "config": {},
+                "config": {"url_template": "https://download.asdf.com/{file_path}"},
             }
 
-        self.profiles = {
-            k: StorageProfileConfig.model_validate(v) for k, v in profiles_dict.items()
-        }
+        self.profiles = {k: StorageProfileConfig(**v) for k, v in profiles_dict.items()}
 
     class Config:
         env_file = ".env"

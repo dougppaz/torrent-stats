@@ -14,14 +14,14 @@ class TorrentMetadata(BaseModel):
     id: str = Field(alias="_id", default="")
     rev: str | None = Field(alias="_rev", default=None)
     info_hash: str
-    name: str = ""
-    total_size: int = 0
-    torrent_storage_ref: str = ""
-    storage_profile_id: str = ""
-    file_path: str = ""
+    name: str | None = None
+    total_size: int | None = None
+    torrent_storage_ref: str | None = None
+    storage_profile_key: str | None = None
+    file_path: str | None = None
     total_hits: int = 0
     last_hit_at: str | None = None
-    files: list[TorrentFile] = []
+    files: list[TorrentFile] | None = None
     created_at: str = Field(default_factory=lambda: datetime.now(UTC).isoformat())
 
     class Config:
