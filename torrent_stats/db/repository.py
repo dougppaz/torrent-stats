@@ -48,6 +48,24 @@ class TorrentMetadataRepository(BaseRepository[TorrentMetadata]):
     def find_by_info_hash(self, info_hash: str) -> TorrentMetadata | None:
         return self.get(info_hash)
 
+    def get_or_create(
+        self, info_hash: str, total_hits: int = 0, last_hit_at: str | None = None
+    ) -> tuple[TorrentMetadata, bool]:
+        torrent = self.find_by_info_hash(info_hash)
+        if torrent:
+            torrent.total_hits = total_hits
+            torrent.last_hit_at = last_hit_at
+            saved = self.save(torrent)
+            return saved, False
+        else:
+            torrent = TorrentMetadata(
+                info_hash=info_hash,
+                total_hits=total_hits,
+                last_hit_at=last_hit_at,
+            )
+            saved = self.save(torrent)
+            return saved, True
+
 
 class WorkerKeyRepository(BaseRepository[WorkerKey]):
     def __init__(self) -> None:

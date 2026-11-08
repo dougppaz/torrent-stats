@@ -3,7 +3,7 @@ from __future__ import annotations
 from typing import Annotated
 
 from fastapi import APIRouter, Query, status
-from torrent_stats.db.models import TaskDocument, TorrentMetadata, TrackerStat
+from torrent_stats.db.models import TaskDocument, TrackerStat
 from torrent_stats.db.repository import TaskRepository, TorrentMetadataRepository
 from torrent_stats.services.hit_counter import hit_counter_service
 from torrent_stats.services.storage import storage_manager
@@ -21,22 +21,11 @@ def get_torrent(
     ] = None,
 ):
     total_hits, last_hit_at = hit_counter_service.record_hit(hash)
-    # The current request timestamp acts as both the last hit time and the creation timestamp for enqueued tasks
     current_request_timestamp = last_hit_at
 
-    torrent = torrent_repo.find_by_info_hash(hash)
-
-    if not torrent:
-        torrent = TorrentMetadata(
-            info_hash=hash,
-            total_hits=total_hits,
-            last_hit_at=current_request_timestamp,
-        )
-        torrent_repo.save(torrent)
-    else:
-        torrent.total_hits = total_hits
-        torrent.last_hit_at = current_request_timestamp
-        torrent_repo.save(torrent)
+    torrent, _ = torrent_repo.get_or_create(
+        hash, total_hits=total_hits, last_hit_at=current_request_timestamp
+    )
 
     existing_tasks = task_repo.find_by_info_hash(hash)
     if not any(t.task_type == "scrape_torrent" for t in existing_tasks):

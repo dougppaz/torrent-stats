@@ -31,6 +31,27 @@ def test_torrent_metadata_repository(mock_client):
 
 
 @patch("torrent_stats.db.repository.couchdb_client")
+def test_torrent_metadata_get_or_create(mock_client):
+    repo = TorrentMetadataRepository()
+    # Case 1: exists
+    mock_client.get_doc.return_value = {
+        "_id": "abc123hash",
+        "info_hash": "abc123hash",
+        "name": "Existing",
+    }
+    mock_client.save_doc.return_value = {"id": "abc123hash", "rev": "2-rev"}
+    torrent, created = repo.get_or_create("abc123hash", total_hits=3, last_hit_at="now")
+    assert not created
+    assert torrent.total_hits == 3
+
+    # Case 2: does not exist
+    mock_client.get_doc.return_value = None
+    torrent, created = repo.get_or_create("newhash", total_hits=1, last_hit_at="now")
+    assert created
+    assert torrent.info_hash == "newhash"
+
+
+@patch("torrent_stats.db.repository.couchdb_client")
 def test_worker_key_repository(mock_client):
     repo = WorkerKeyRepository()
     mock_client.save_doc.return_value = {"id": "hash", "rev": "1-rev"}

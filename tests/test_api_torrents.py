@@ -15,7 +15,10 @@ def test_get_torrent_endpoint_missing(
     mock_hit_counter, mock_repo, mock_storage, mock_task_repo
 ):
     mock_hit_counter.record_hit.return_value = (10, "2026-11-07T00:00:00Z")
-    mock_repo.find_by_info_hash.return_value = None
+    meta = TorrentMetadata(
+        info_hash="abcdef123456", total_hits=10, last_hit_at="2026-11-07T00:00:00Z"
+    )
+    mock_repo.get_or_create.return_value = (meta, True)
     mock_task_repo.find_by_info_hash.return_value = [
         TaskDocument(
             info_hash="abcdef123456", task_type="scrape_torrent", status="pending"
@@ -42,13 +45,16 @@ def test_get_torrent_endpoint_existing(
     mock_hit_counter, mock_repo, mock_storage, mock_task_repo
 ):
     mock_hit_counter.record_hit.return_value = (5, "2026-11-07T00:00:00Z")
-    mock_repo.find_by_info_hash.return_value = TorrentMetadata(
+    meta = TorrentMetadata(
         info_hash="abcdef123456",
         name="Existing Torrent",
         total_size=1024,
         storage_profile_key="ftp",
         storage_params={"file_path": "torrents/abc.torrent"},
+        total_hits=5,
+        last_hit_at="2026-11-07T00:00:00Z",
     )
+    mock_repo.get_or_create.return_value = (meta, False)
     mock_storage.get_download_url.return_value = (
         "https://download.asdf.com/torrents/abc.torrent"
     )
