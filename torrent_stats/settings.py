@@ -1,6 +1,7 @@
-import os
-from typing import List
+from __future__ import annotations
+
 from pydantic_settings import BaseSettings
+
 
 class AppSettings(BaseSettings):
     app_name: str = "torrent-stats API"
@@ -12,8 +13,8 @@ class AppSettings(BaseSettings):
 
 
 class CouchDBSettings(BaseSettings):
-    couchdb_url: str = os.getenv("COUCHDB_URL", "http://admin:admin@localhost:5984")
-    couchdb_db_name: str = os.getenv("COUCHDB_DB_NAME", "torrent_stats")
+    couchdb_url: str = "http://admin:admin@localhost:5984"
+    couchdb_db_name: str = "torrent_stats"
 
     class Config:
         env_file = ".env"
@@ -21,7 +22,7 @@ class CouchDBSettings(BaseSettings):
 
 
 class RedisSettings(BaseSettings):
-    redis_url: str = os.getenv("REDIS_URL", "redis://localhost:6379/0")
+    redis_url: str = "redis://localhost:6379/0"
 
     class Config:
         env_file = ".env"
@@ -29,9 +30,9 @@ class RedisSettings(BaseSettings):
 
 
 class WorkerSettings(BaseSettings):
-    worker_failure_cooldown_seconds: int = int(os.getenv("WORKER_FAILURE_COOLDOWN_SECONDS", 12 * 3600))
-    worker_stats_cooldown_seconds: int = int(os.getenv("WORKER_STATS_COOLDOWN_SECONDS", 6 * 3600))
-    worker_task_lease_seconds: int = int(os.getenv("WORKER_TASK_LEASE_SECONDS", 300))
+    worker_failure_cooldown_seconds: int = 12 * 3600
+    worker_stats_cooldown_seconds: int = 6 * 3600
+    worker_task_lease_seconds: int = 300
 
     class Config:
         env_file = ".env"
@@ -39,11 +40,7 @@ class WorkerSettings(BaseSettings):
 
 
 class TrackersSettings(BaseSettings):
-    default_trackers: List[str] = (
-        os.getenv("DEFAULT_TRACKERS", "").split(",")
-        if os.getenv("DEFAULT_TRACKERS")
-        else []
-    )
+    default_trackers: list[str] = []
 
     class Config:
         env_file = ".env"

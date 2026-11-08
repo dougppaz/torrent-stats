@@ -1,25 +1,39 @@
-[build-system]
-requires = ["setuptools>=61.0.0"]
-build-backend = "setuptools.build_meta"
-
-[project]
+[tool.poetry]
 name = "torrent-stats"
 version = "1.0.0"
 description = "Resolving info hashes into .torrent files, detailed file trees, and live peer/seed stats across trackers."
+authors = ["Douglas Paz <eu@douglaspaz.com>"]
 readme = "README.md"
-requires-python = ">=3.8"
-dependencies = [
-    "fastapi>=0.100.0",
-    "uvicorn>=0.22.0",
-    "pydantic>=2.0.0",
-    "pydantic-settings>=2.0.0",
-    "redis>=4.5.0",
-    "httpx>=0.24.0",
-    "fsspec>=2023.6.0",
-]
-authors = [
-    { name = "Douglas Paz", email = "eu@douglaspaz.com" }
-]
+packages = [{include = "torrent_stats"}]
 
-[tool.setuptools]
-packages = ["torrent_stats"]
+[tool.poetry.dependencies]
+python = ">=3.8"
+fastapi = ">=0.124.4"
+uvicorn = ">=0.33.0"
+pydantic = ">=2.10.6"
+pydantic-settings = ">=2.8.1"
+redis = ">=6.1.1"
+httpx = ">=0.28.1"
+fsspec = ">=2025.3.0"
+
+[tool.poetry.group.dev.dependencies]
+ruff = ">=0.3.0"
+mypy = ">=1.8.0"
+pre-commit = ">=3.5.0"
+
+[build-system]
+requires = ["poetry-core>=2.0.0"]
+build-backend = "poetry.masonry.api"
+
+[tool.ruff]
+line-length = 88
+target-version = "py312"
+src = ["torrent_stats"]
+
+[tool.mypy]
+python_version = "3.12"
+warn_return_any = true
+warn_unused_ignores = true
+ignore_missing_imports = true
+check_untyped_defs = true
+files = ["torrent_stats"]
