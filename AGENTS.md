@@ -2,23 +2,12 @@
 
 Instructions for coding agents working on **torrent-stats**.
 
-## Architecture Overview
+## Core Stack & Architecture
 
-- **API Service (`torrent_stats/` - Python)**:
-  - Built with Python (FastAPI recommended).
-  - Primary database: CouchDB using an agnostic repository pattern (prepared for MongoDB/others).
-  - Cache & Counters: Redis (12-hour hourly hit buckets synced to CouchDB `totalHits`/`lastHitAt`, task leases, and stats).
-  - Agnostic Storage: fsspec-inspired storage profiles (FTP implementation first) recording profile ID and file path, with public download URL templates (e.g., `https://download.asdf.com/{file_path}`).
-  - Endpoints defined in `api/openapi.yaml`.
+- **API (`torrent_stats/` - Python)**: FastAPI + CouchDB (Repository pattern) + Redis (12h hourly hit buckets synced to CouchDB `totalHits`/`lastHitAt`, task leases). Agnostic storage profiles (FTP first via `fsspec`, recording profile ID and `file_path`, rendering download URLs via profile templates like `https://download.asdf.com/{file_path}`). Routes defined in `api/openapi.yaml`.
+- **Worker (`worker/` - Go)**: Standalone binary. Communicates exclusively via authenticated HTTP API endpoints (`X-Worker-Key`). Claims tasks via `POST /worker/tasks/claim` enforcing 12h failure cooldowns (new torrents) and 6h update cooldowns (tracker stats), with ACK/leases and automatic tracker pruning after 3 consecutive failures.
 
-- **Worker Service (`worker/` - Go)**:
-  - Built with Go for easy binary distribution.
-  - Communicates exclusively via authenticated HTTP API endpoints (`X-Worker-Key` header).
-  - Claims tasks via `POST /worker/tasks/claim` (respecting 12h failure cooldowns and 6h stats update cooldowns, with ACK/leases).
-  - Uploads raw `.torrent` files and submits stats/failures (pruning trackers after 3 consecutive failures).
+## Directives
 
-## Specifications & Standards
-
-- Feature plan: `.specs/features/core-resolution/plan.md` (Approved: `user: "yes"`).
-- API Spec: `api/openapi.yaml`.
-- All changes must conform to active decisions in `.specs/STATE.md` (if any) and the approved plan.
+- **Specifications are binding**: Feature shape and acceptance criteria live in `.specs/features/core-resolution/plan.md` (Approved: `user: "yes"`). API contracts live in `api/openapi.yaml`.
+- **Atomic implementation**: Build strictly slice by slice. Verify every check against the plan.
