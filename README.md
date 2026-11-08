@@ -54,5 +54,5 @@ This will spin up:
 If running CouchDB independently or via Docker Compose for the first time, you can configure it as a single node using the provided helper script:
 
 ```bash
-./scripts/start-couchdb.sh "http://admin:admin@localhost:5984"
+./scripts/setup-couchdb.sh "http://admin:admin@localhost:5984"
 ```
