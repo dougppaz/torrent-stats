@@ -1,9 +1,13 @@
 from datetime import UTC, datetime, timedelta
-from typing import Any
 from unittest.mock import patch
 
 from fastapi.testclient import TestClient
-from torrent_stats.db.models import TaskItem, TorrentMetadata, TrackerStat, WorkerKey
+from torrent_stats.db.models import (
+    TaskDocument,
+    TorrentMetadata,
+    TrackerStat,
+    WorkerKey,
+)
 from torrent_stats.main import app
 
 client = TestClient(app)
@@ -23,33 +27,30 @@ def test_worker_unauthorized(mock_worker_key_repo):
 
 
 @patch("torrent_stats.api.routers.worker.worker_key_repo")
-@patch("torrent_stats.api.routers.worker.torrent_repo")
-def test_worker_claim_task_no_content(mock_torrent_repo, mock_worker_key_repo):
+@patch("torrent_stats.api.routers.worker.task_repo")
+def test_worker_claim_task_no_content(mock_task_repo, mock_worker_key_repo):
     mock_worker_key_repo.find_by_key_hash.return_value = WorkerKey(
         _id="hash1", key_hash="hash1"
     )
-    mock_db: dict[str, Any] = {}
-    mock_torrent_repo.client.get_db.return_value = mock_db
+    mock_task_repo.find_claimable.return_value = []
 
     response = client.post("/worker/tasks/claim", headers={"X-Worker-Key": "valid-key"})
     assert response.status_code == 204
 
 
 @patch("torrent_stats.api.routers.worker.worker_key_repo")
-@patch("torrent_stats.api.routers.worker.torrent_repo")
-def test_worker_claim_task_success(mock_torrent_repo, mock_worker_key_repo):
+@patch("torrent_stats.api.routers.worker.task_repo")
+def test_worker_claim_task_success(mock_task_repo, mock_worker_key_repo):
     mock_worker_key_repo.find_by_key_hash.return_value = WorkerKey(
         _id="hash1", key_hash="hash1"
     )
-    torrent = TorrentMetadata(
+    task = TaskDocument(
+        _id="task-1",
         info_hash="abc123456",
-        tasks=[
-            TaskItem(task_id="task-1", task_type="scrape_torrent", status="pending")
-        ],
+        task_type="scrape_torrent",
+        status="pending",
     )
-    mock_db: dict[str, Any] = {"abc123456": torrent.model_dump(by_alias=True)}
-    mock_torrent_repo.client.get_db.return_value = mock_db
-    mock_torrent_repo.find_by_info_hash.return_value = torrent
+    mock_task_repo.find_claimable.return_value = [task]
 
     response = client.post("/worker/tasks/claim", headers={"X-Worker-Key": "valid-key"})
     assert response.status_code == 200
@@ -61,9 +62,10 @@ def test_worker_claim_task_success(mock_torrent_repo, mock_worker_key_repo):
 
 
 @patch("torrent_stats.api.routers.worker.worker_key_repo")
+@patch("torrent_stats.api.routers.worker.task_repo")
 @patch("torrent_stats.api.routers.worker.torrent_repo")
 def test_worker_claim_task_expired_lease_and_cooldowns(
-    mock_torrent_repo, mock_worker_key_repo
+    mock_torrent_repo, mock_task_repo, mock_worker_key_repo
 ):
     mock_worker_key_repo.find_by_key_hash.return_value = WorkerKey(
         _id="hash1", key_hash="hash1"
@@ -76,22 +78,24 @@ def test_worker_claim_task_expired_lease_and_cooldowns(
         tracker_stats=[
             TrackerStat(tracker_url="udp://tracker:1337", updated_at=recent)
         ],
-        tasks=[
-            TaskItem(
-                task_id="task-expired",
-                task_type="scrape_torrent",
-                status="claimed",
-                lease_expires_at=past,
-            ),
-            TaskItem(
-                task_id="task-fresh-stats",
-                task_type="scrape_stats",
-                status="pending",
-            ),
-        ],
     )
-    mock_db: dict[str, Any] = {"abc999": torrent.model_dump(by_alias=True)}
-    mock_torrent_repo.client.get_db.return_value = mock_db
+    mock_torrent_repo.find_by_info_hash.return_value = torrent
+
+    task_expired = TaskDocument(
+        _id="task-expired",
+        info_hash="abc999",
+        task_type="scrape_torrent",
+        status="claimed",
+        lease_expires_at=past,
+    )
+    task_fresh_stats = TaskDocument(
+        _id="task-fresh-stats",
+        info_hash="abc999",
+        task_type="scrape_stats",
+        status="pending",
+        tracker_url="udp://tracker:1337",
+    )
+    mock_task_repo.find_claimable.return_value = [task_expired, task_fresh_stats]
 
     response = client.post("/worker/tasks/claim", headers={"X-Worker-Key": "valid-key"})
     assert response.status_code == 200
@@ -100,10 +104,11 @@ def test_worker_claim_task_expired_lease_and_cooldowns(
 
 
 @patch("torrent_stats.api.routers.worker.worker_key_repo")
+@patch("torrent_stats.api.routers.worker.task_repo")
 @patch("torrent_stats.api.routers.worker.torrent_repo")
 @patch("torrent_stats.api.routers.worker.storage_manager")
 def test_worker_upload_torrent_full(
-    mock_storage_manager, mock_torrent_repo, mock_worker_key_repo
+    mock_storage_manager, mock_torrent_repo, mock_task_repo, mock_worker_key_repo
 ):
     mock_worker_key_repo.find_by_key_hash.return_value = WorkerKey(
         _id="hash1", key_hash="hash1"
@@ -114,6 +119,14 @@ def test_worker_upload_torrent_full(
         "ftp://server/abc123.torrent",
     )
     mock_torrent_repo.find_by_info_hash.return_value = None
+    mock_task_repo.find_by_info_hash.return_value = [
+        TaskDocument(
+            _id="task-abc",
+            info_hash="abc123",
+            task_type="scrape_torrent",
+            status="pending",
+        )
+    ]
 
     response = client.post(
         "/worker/torrents",
@@ -135,8 +148,11 @@ def test_worker_upload_torrent_full(
 
 
 @patch("torrent_stats.api.routers.worker.worker_key_repo")
+@patch("torrent_stats.api.routers.worker.task_repo")
 @patch("torrent_stats.api.routers.worker.torrent_repo")
-def test_worker_submit_tracker_stats_and_prune(mock_torrent_repo, mock_worker_key_repo):
+def test_worker_submit_tracker_stats_and_prune(
+    mock_torrent_repo, mock_task_repo, mock_worker_key_repo
+):
     mock_worker_key_repo.find_by_key_hash.return_value = WorkerKey(
         _id="hash1", key_hash="hash1"
     )
@@ -147,6 +163,15 @@ def test_worker_submit_tracker_stats_and_prune(mock_torrent_repo, mock_worker_ke
         ],
     )
     mock_torrent_repo.find_by_info_hash.return_value = torrent
+    mock_task_repo.find_by_info_hash.return_value = [
+        TaskDocument(
+            _id="task-stats",
+            info_hash="abc123",
+            task_type="scrape_stats",
+            tracker_url="udp://tracker.test:1337",
+            status="claimed",
+        )
+    ]
 
     # Submit failure (3rd consecutive failure -> should prune)
     response = client.post(

@@ -7,9 +7,9 @@ from torrent_stats.settings import couchdb_settings
 
 
 class CouchDBClient:
-    def __init__(self) -> None:
+    def __init__(self, db_name: str | None = None) -> None:
         self.server = couchdb.Server(couchdb_settings.couchdb_url)
-        self.db_name = couchdb_settings.couchdb_db_name
+        self.db_name = db_name or couchdb_settings.couchdb_db_name
 
     def get_db(self) -> couchdb.Database:
         try:

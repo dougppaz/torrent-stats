@@ -17,13 +17,23 @@ from fastapi import (
     status,
 )
 from pydantic import BaseModel
-from torrent_stats.db.models import TaskItem, TorrentFile, TorrentMetadata, TrackerStat
-from torrent_stats.db.repository import TorrentMetadataRepository, WorkerKeyRepository
+from torrent_stats.db.models import (
+    TaskDocument,
+    TorrentFile,
+    TorrentMetadata,
+    TrackerStat,
+)
+from torrent_stats.db.repository import (
+    TaskRepository,
+    TorrentMetadataRepository,
+    WorkerKeyRepository,
+)
 from torrent_stats.services.storage import storage_manager
 from torrent_stats.settings import worker_settings
 
 router = APIRouter(prefix="/worker", tags=["worker"])
 torrent_repo = TorrentMetadataRepository()
+task_repo = TaskRepository()
 worker_key_repo = WorkerKeyRepository()
 
 
@@ -50,50 +60,48 @@ def claim_task(
     _: str = Depends(verify_worker_key),
 ):
     now = datetime.now(UTC)
-    db = torrent_repo.client.get_db()
+    all_tasks = task_repo.find_claimable()
 
-    candidates: list[tuple[TorrentMetadata, TaskItem]] = []
-    for doc_id in db:
-        if doc_id.startswith("_"):
-            continue
-        doc = db.get(doc_id)
-        if not doc:
-            continue
-        try:
-            torrent = TorrentMetadata.model_validate(doc)
-        except (ValueError, TypeError, pydantic.ValidationError):
+    candidates: list[TaskDocument] = []
+    for task in all_tasks:
+        is_pending = task.status == "pending"
+        is_expired_lease = (
+            task.status in ("claimed", "scraping")
+            and task.lease_expires_at
+            and datetime.fromisoformat(task.lease_expires_at) < now
+        )
+
+        if not (is_pending or is_expired_lease):
             continue
 
-        for task in torrent.tasks:
-            is_pending = task.status == "pending"
-            is_expired_lease = (
-                task.status in ("claimed", "scraping")
-                and task.lease_expires_at
-                and datetime.fromisoformat(task.lease_expires_at) < now
-            )
-
-            if not (is_pending or is_expired_lease):
+        # Check failure cooldown (12h)
+        if task.last_attempt_at and task.status == "failed":
+            last_attempt = datetime.fromisoformat(task.last_attempt_at)
+            if (
+                now - last_attempt
+            ).total_seconds() < worker_settings.worker_failure_cooldown_seconds:
                 continue
 
-            # Check failure cooldown (12h)
-            if task.last_attempt_at and task.status == "failed":
-                last_attempt = datetime.fromisoformat(task.last_attempt_at)
-                if (
-                    now - last_attempt
-                ).total_seconds() < worker_settings.worker_failure_cooldown_seconds:
-                    continue
-
-            # Check stats update cooldown (6h) for scrape_stats tasks
-            if task.task_type == "scrape_stats" and torrent.tracker_stats:
-                all_fresh = all(
-                    (now - datetime.fromisoformat(ts.updated_at)).total_seconds()
-                    < worker_settings.worker_stats_cooldown_seconds
-                    for ts in torrent.tracker_stats
+        # Check stats update cooldown (6h) for scrape_stats tasks
+        if task.task_type == "scrape_stats" and task.tracker_url:
+            torrent = torrent_repo.find_by_info_hash(task.info_hash)
+            if torrent and torrent.tracker_stats:
+                stat = next(
+                    (
+                        ts
+                        for ts in torrent.tracker_stats
+                        if ts.tracker_url == task.tracker_url
+                    ),
+                    None,
                 )
-                if all_fresh:
+                if (
+                    stat
+                    and (now - datetime.fromisoformat(stat.updated_at)).total_seconds()
+                    < worker_settings.worker_stats_cooldown_seconds
+                ):
                     continue
 
-            candidates.append((torrent, task))
+        candidates.append(task)
 
     if not candidates:
         response.status_code = status.HTTP_204_NO_CONTENT
@@ -101,10 +109,10 @@ def claim_task(
 
     # Prioritize scrape_torrent over scrape_stats, then by creation date
     candidates.sort(
-        key=lambda x: (0 if x[1].task_type == "scrape_torrent" else 1, x[1].created_at)
+        key=lambda x: (0 if x.task_type == "scrape_torrent" else 1, x.created_at)
     )
 
-    torrent, task = candidates[0]
+    task = candidates[0]
 
     task.status = "claimed"
     task.claimed_at = now.isoformat()
@@ -112,11 +120,11 @@ def claim_task(
     task.lease_expires_at = datetime.fromtimestamp(lease_expires, UTC).isoformat()
     task.last_attempt_at = now.isoformat()
 
-    torrent_repo.save(torrent)
+    task_repo.save(task)
 
     return {
-        "task_id": task.task_id,
-        "info_hash": torrent.info_hash,
+        "task_id": task.id,
+        "info_hash": task.info_hash,
         "task_type": task.task_type,
         "lease_expires_at": task.lease_expires_at,
     }
@@ -168,20 +176,22 @@ async def upload_torrent(
     if parsed_files:
         torrent.files = parsed_files
 
-    for task in torrent.tasks:
-        if task.task_type == "scrape_torrent":
-            task.status = "completed"
+    torrent_repo.save(torrent)
 
-    if not any(t.task_type == "scrape_torrent" for t in torrent.tasks):
-        torrent.tasks.append(
-            TaskItem(
-                task_id=f"task-{info_hash}-scrape",
+    tasks = task_repo.find_by_info_hash(info_hash)
+    scrape_task = next((t for t in tasks if t.task_type == "scrape_torrent"), None)
+    if scrape_task:
+        scrape_task.status = "completed"
+        task_repo.save(scrape_task)
+    else:
+        task_repo.save(
+            TaskDocument(
+                info_hash=info_hash,
                 task_type="scrape_torrent",
                 status="completed",
             )
         )
 
-    torrent_repo.save(torrent)
     return {"status": "success", "info_hash": info_hash}
 
 
@@ -245,4 +255,19 @@ def submit_tracker_stats(
     ]
 
     torrent_repo.save(torrent)
+
+    tasks = task_repo.find_by_info_hash(hash)
+    stat_task = next(
+        (
+            t
+            for t in tasks
+            if t.task_type == "scrape_stats" and t.tracker_url == payload.tracker_url
+        ),
+        None,
+    )
+    if stat_task:
+        stat_task.status = "completed" if payload.success else "failed"
+        stat_task.last_attempt_at = now
+        task_repo.save(stat_task)
+
     return {"status": "success", "info_hash": hash}

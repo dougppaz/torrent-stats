@@ -3,9 +3,10 @@ from __future__ import annotations
 from typing import Generic, TypeVar
 
 from pydantic import BaseModel
-from torrent_stats.db.client import couchdb_client
+from torrent_stats.db.client import CouchDBClient, couchdb_client
 from torrent_stats.db.crypto import hash_worker_key
-from torrent_stats.db.models import TorrentMetadata, WorkerKey
+from torrent_stats.db.models import TaskDocument, TorrentMetadata, WorkerKey
+from torrent_stats.settings import couchdb_settings
 
 T = TypeVar("T", bound=BaseModel)
 
@@ -64,3 +65,22 @@ class WorkerKeyRepository(BaseRepository[WorkerKey]):
             res: WorkerKey = self.model_class.model_validate(docs[0])
             return res
         return None
+
+
+class TaskRepository(BaseRepository[TaskDocument]):
+    def __init__(self) -> None:
+        super().__init__(TaskDocument)
+        self.client = CouchDBClient(db_name=f"{couchdb_settings.couchdb_db_name}_tasks")
+
+    def find_by_info_hash(self, info_hash: str) -> list[TaskDocument]:
+        docs = self.client.find_by_selector({"info_hash": info_hash})
+        if not docs:
+            db = self.client.get_db()
+            docs = [db.get(doc_id) for doc_id in db if not doc_id.startswith("_")]
+            docs = [d for d in docs if d and d.get("info_hash") == info_hash]
+        return [TaskDocument.model_validate(d) for d in docs if d]
+
+    def find_claimable(self) -> list[TaskDocument]:
+        db = self.client.get_db()
+        docs = [db.get(doc_id) for doc_id in db if not doc_id.startswith("_")]
+        return [TaskDocument.model_validate(d) for d in docs if d is not None]
