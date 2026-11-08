@@ -3,7 +3,7 @@ from __future__ import annotations
 from datetime import UTC, datetime
 from typing import Any
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, model_validator
 
 
 class TorrentFile(BaseModel):
@@ -24,8 +24,13 @@ class TorrentMetadata(BaseModel):
     files: list[TorrentFile] | None = None
     created_at: str = Field(default_factory=lambda: datetime.now(UTC).isoformat())
 
-    class Config:
-        populate_by_name = True
+    @model_validator(mode="after")
+    def set_id(self) -> TorrentMetadata:
+        if not self.id and self.info_hash:
+            self.id = self.info_hash
+        return self
+
+    model_config = {"populate_by_name": True, "extra": "ignore"}
 
 
 class WorkerKey(BaseModel):
@@ -35,5 +40,10 @@ class WorkerKey(BaseModel):
     description: str = ""
     created_at: str = Field(default_factory=lambda: datetime.now(UTC).isoformat())
 
-    class Config:
-        populate_by_name = True
+    @model_validator(mode="after")
+    def set_id(self) -> WorkerKey:
+        if not self.id and self.key_hash:
+            self.id = self.key_hash
+        return self
+
+    model_config = {"populate_by_name": True, "extra": "ignore"}

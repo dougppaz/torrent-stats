@@ -3,6 +3,7 @@ from __future__ import annotations
 from datetime import UTC, datetime, timedelta
 
 import redis
+from torrent_stats.db.models import TorrentMetadata
 from torrent_stats.db.repository import TorrentMetadataRepository
 from torrent_stats.settings import redis_settings
 
@@ -43,9 +44,6 @@ class HitCounterService:
             torrent.last_hit_at = last_hit_at
             self.torrent_repo.save(torrent)
         else:
-            # If torrent record does not exist yet, create a skeleton metadata record for tracking
-            from torrent_stats.db.models import TorrentMetadata
-
             new_torrent = TorrentMetadata(
                 info_hash=info_hash,
                 total_hits=total_hits,

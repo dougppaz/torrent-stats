@@ -11,26 +11,20 @@ class AppSettings(BaseSettings):
     app_name: str = "torrent-stats API"
     debug: bool = False
 
-    class Config:
-        env_file = ".env"
-        extra = "ignore"
+    model_config = {"env_file": ".env", "extra": "ignore"}
 
 
 class CouchDBSettings(BaseSettings):
     couchdb_url: str = "http://admin:admin@localhost:5984/"
     couchdb_db_name: str = "torrent_stats"
 
-    class Config:
-        env_file = ".env"
-        extra = "ignore"
+    model_config = {"env_file": ".env", "extra": "ignore"}
 
 
 class RedisSettings(BaseSettings):
     redis_url: str = "redis://localhost:6379/0"
 
-    class Config:
-        env_file = ".env"
-        extra = "ignore"
+    model_config = {"env_file": ".env", "extra": "ignore"}
 
 
 class WorkerSettings(BaseSettings):
@@ -39,17 +33,13 @@ class WorkerSettings(BaseSettings):
     worker_task_lease_seconds: int = 300
     worker_key_salt: str = "change-this-salt-in-production"
 
-    class Config:
-        env_file = ".env"
-        extra = "ignore"
+    model_config = {"env_file": ".env", "extra": "ignore"}
 
 
 class TrackersSettings(BaseSettings):
     default_trackers: list[str] = []
 
-    class Config:
-        env_file = ".env"
-        extra = "ignore"
+    model_config = {"env_file": ".env", "extra": "ignore"}
 
 
 class StorageProfileConfig(BaseModel):
@@ -91,9 +81,7 @@ class StorageProfilesSettings(BaseSettings):
             k: StorageProfileConfig.model_validate(v) for k, v in profiles_dict.items()
         }
 
-    class Config:
-        env_file = ".env"
-        extra = "ignore"
+    model_config = {"env_file": ".env", "extra": "ignore"}
 
 
 app_settings = AppSettings()
