@@ -1,0 +1,16 @@
+[build-system]
+requires = ["setuptools>=61.0.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "torrent-stats"
+version = "1.0.0"
+description = "Resolving info hashes into .torrent files, detailed file trees, and live peer/seed stats across trackers."
+readme = "README.md"
+requires-python = ">=3.8"
+dependencies = [
+    # Add python dependencies here (e.g. FastAPI, CouchDB client/requests, redis, fsspec)
+]
+authors = [
+    { name = "Douglas Paz", email = "eu@douglaspaz.com" }
+]

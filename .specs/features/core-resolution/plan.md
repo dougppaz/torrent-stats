@@ -1,6 +1,6 @@
 # Core Resolution and Scraping
 
-**Approved**: 2026-11-07 - user: "sim. podemos planejar as tarefas para implementacao. quero que a primeira seja criar um arquivo de definicao da api com openapi."
+**Approved**: 2026-11-07 - user: "yes"
 
 > Build this with **tlc-implement**. Every criterion becomes a check with a proof; nothing under the open questions is settled while building.
 
