@@ -37,6 +37,7 @@ class WorkerSettings(BaseSettings):
     worker_failure_cooldown_seconds: int = 12 * 3600
     worker_stats_cooldown_seconds: int = 6 * 3600
     worker_task_lease_seconds: int = 300
+    worker_key_salt: str = "change-this-salt-in-production"
 
     class Config:
         env_file = ".env"
