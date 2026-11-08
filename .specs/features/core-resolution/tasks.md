@@ -14,11 +14,11 @@ Each task is atomic, testable, and concludes with a verification gate and a git 
   - **Gate**: Hourly-bucketed Redis hit tracking (12h TTL sliding window) synced to CouchDB `total_hits` and `last_hit_at` upon calling `GET /torrents/{hash}`.
   - **Commit**: `feat(api): implement Redis sliding-window hit counter and CouchDB synchronization`
 
-- [ ] **Task 4: Agnostic Storage Manager (fsspec / FTP)**
+- [x] **Task 4: Agnostic Storage Manager (fsspec / FTP)**
   - **Gate**: Storage manager integrating active storage profile configuration (`STORAGE_PROFILE_*`), handling `.torrent` file upload via fsspec FTP, and rendering public `download_url` via template string formatting with `storage_params`.
   - **Commit**: `feat(api): implement fsspec-inspired storage manager with FTP profile and download URL rendering`
 
-- [ ] **Task 5: Public API Endpoints (`GET /torrents/:hash`)**
+- [x] **Task 5: Public API Endpoints (`GET /torrents/:hash`)**
   - **Gate**: Implements `GET /torrents/:hash` returning 200 OK (with metadata, download URL, tracker stats, task statuses), recording sliding-window hits, auto-enqueuing missing hashes, and registering custom trackers via query params.
   - **Commit**: `feat(api): implement public GET /torrents/:hash endpoint with hit tracking and auto-enqueue`
 
