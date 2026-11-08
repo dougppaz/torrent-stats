@@ -11,6 +11,25 @@ class TorrentFile(BaseModel):
     length: int
 
 
+class TrackerStat(BaseModel):
+    tracker_url: str
+    seeds: int = 0
+    peers: int = 0
+    updated_at: str = Field(default_factory=lambda: datetime.now(UTC).isoformat())
+    consecutive_failures: int = 0
+
+
+class TaskItem(BaseModel):
+    task_id: str
+    task_type: str = "scrape_torrent"  # scrape_torrent, scrape_stats
+    status: str = "pending"  # pending, claimed, scraping, completed, failed
+    created_at: str = Field(default_factory=lambda: datetime.now(UTC).isoformat())
+    claimed_at: str | None = None
+    lease_expires_at: str | None = None
+    last_attempt_at: str | None = None
+    error_message: str | None = None
+
+
 class TorrentMetadata(BaseModel):
     id: str = Field(alias="_id", default="")
     rev: str | None = Field(alias="_rev", default=None)
@@ -22,6 +41,8 @@ class TorrentMetadata(BaseModel):
     total_hits: int = 0
     last_hit_at: str | None = None
     files: list[TorrentFile] | None = None
+    tracker_stats: list[TrackerStat] = Field(default_factory=list)
+    tasks: list[TaskItem] = Field(default_factory=list)
     created_at: str = Field(default_factory=lambda: datetime.now(UTC).isoformat())
 
     @model_validator(mode="after")
