@@ -53,7 +53,6 @@ class TrackersSettings(BaseSettings):
 
 class StorageProfileConfig(BaseModel):
     type: str = "ftp"
-    url_template: str = "https://download.example.com/{file_path}"
     config: dict[str, Any] = {}
 
 
@@ -70,24 +69,21 @@ class StorageProfilesSettings(BaseSettings):
                     profile_key, param = parts
                     if profile_key not in profiles_dict:
                         profiles_dict[profile_key] = {
-                            "config": {},
+                            "config": {
+                                "url_template": "https://download.asdf.com/{file_path}"
+                            },
                             "type": "ftp",
-                            "url_template": "https://download.example.com/{file_path}",
                         }
 
                     if param == "type":
                         profiles_dict[profile_key]["type"] = value
-                    elif param == "url_template":
-                        profiles_dict[profile_key]["url_template"] = value
                     else:
                         profiles_dict[profile_key]["config"][param] = value
 
         if not profiles_dict:
-            # Default fallback profile
             profiles_dict["default"] = {
                 "type": "ftp",
-                "url_template": "https://download.example.com/{file_path}",
-                "config": {},
+                "config": {"url_template": "https://download.asdf.com/{file_path}"},
             }
 
         self.profiles = {k: StorageProfileConfig(**v) for k, v in profiles_dict.items()}
