@@ -53,7 +53,7 @@ class TrackersSettings(BaseSettings):
 
 class StorageProfileConfig(BaseModel):
     type: str = "ftp"
-    url_template: str = "https://download.asdf.com/{file_path}"
+    url_template: str = "https://download.example.com/{file_path}"
     config: dict[str, Any] = {}
 
 
@@ -72,7 +72,7 @@ class StorageProfilesSettings(BaseSettings):
                         profiles_dict[profile_key] = {
                             "config": {},
                             "type": "ftp",
-                            "url_template": "https://download.asdf.com/{file_path}",
+                            "url_template": "https://download.example.com/{file_path}",
                         }
 
                     if param == "type":
@@ -86,7 +86,7 @@ class StorageProfilesSettings(BaseSettings):
             # Default fallback profile
             profiles_dict["default"] = {
                 "type": "ftp",
-                "url_template": "https://download.asdf.com/{file_path}",
+                "url_template": "https://download.example.com/{file_path}",
                 "config": {},
             }
 
