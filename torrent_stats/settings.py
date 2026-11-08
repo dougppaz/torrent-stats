@@ -1,5 +1,9 @@
 from __future__ import annotations
 
+import os
+from typing import Any, Literal
+
+from pydantic import BaseModel, Field
 from pydantic_settings import BaseSettings
 
 
@@ -13,7 +17,7 @@ class AppSettings(BaseSettings):
 
 
 class CouchDBSettings(BaseSettings):
-    couchdb_url: str = "http://admin:admin@localhost:5984"
+    couchdb_url: str = "http://admin:admin@localhost:5984/"
     couchdb_db_name: str = "torrent_stats"
 
     class Config:
@@ -33,6 +37,7 @@ class WorkerSettings(BaseSettings):
     worker_failure_cooldown_seconds: int = 12 * 3600
     worker_stats_cooldown_seconds: int = 6 * 3600
     worker_task_lease_seconds: int = 300
+    worker_key_salt: str = "change-this-salt-in-production"
 
     class Config:
         env_file = ".env"
@@ -47,8 +52,53 @@ class TrackersSettings(BaseSettings):
         extra = "ignore"
 
 
+class StorageProfileConfig(BaseModel):
+    type: Literal["ftp"] = "ftp"
+    config: dict[str, Any] = Field(default_factory=dict)
+
+
+class StorageProfilesSettings(BaseSettings):
+    current_storage_profile: str = "default"
+    profiles: dict[str, StorageProfileConfig] = {}
+
+    def __init__(self, **kwargs: Any) -> None:
+        super().__init__(**kwargs)
+        self.current_storage_profile = os.getenv("CURRENT_STORAGE_PROFILE", "default")
+        profiles_dict: dict[str, dict[str, Any]] = {}
+        for key, value in os.environ.items():
+            if key.startswith("STORAGE_PROFILE_"):
+                parts = key[len("STORAGE_PROFILE_") :].lower().split("_", 1)
+                if len(parts) == 2:
+                    profile_key, param = parts
+                    if profile_key not in profiles_dict:
+                        profiles_dict[profile_key] = {
+                            "type": "ftp",
+                            "config": {},
+                        }
+
+                    if param == "type":
+                        profiles_dict[profile_key]["type"] = value
+                    else:
+                        profiles_dict[profile_key]["config"][param] = value
+
+        if not profiles_dict:
+            profiles_dict["default"] = {
+                "type": "ftp",
+                "config": {"url_template": "https://download.asdf.com/{file_path}"},
+            }
+
+        self.profiles = {
+            k: StorageProfileConfig.model_validate(v) for k, v in profiles_dict.items()
+        }
+
+    class Config:
+        env_file = ".env"
+        extra = "ignore"
+
+
 app_settings = AppSettings()
 couchdb_settings = CouchDBSettings()
 redis_settings = RedisSettings()
 worker_settings = WorkerSettings()
 trackers_settings = TrackersSettings()
+storage_profiles_settings = StorageProfilesSettings()

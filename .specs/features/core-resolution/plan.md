@@ -107,7 +107,7 @@ As a remote worker, I want to upload raw `.torrent` files to the API so the API 
 | Assumption | Chosen default | Rationale | Confirmed |
 | --- | --- | --- | --- |
 | Default storage profile type | FTP (via fsspec) | Easiest initial setup while maintaining agnostic profile interface for S3 | y |
-| URL template format | `https://download.asdf.com/{file_path}` | Simple python string formatting using stored file path | y |
+| URL template format | `https://download.example.com/{file_path}` | Simple python string formatting using stored file path | y |
 
 **Open questions:** none - all resolved or logged above.
 

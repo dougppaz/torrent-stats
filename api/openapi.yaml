@@ -7,7 +7,7 @@ paths:
   /torrents/{hash}:
     get:
       summary: Get torrent metadata, file tree, tracker stats, download URL, and task statuses
-      description: Returns 200 OK with available data, increments Redis hit count (12h hourly bucket synced to CouchDB), auto-enqueues scrape if unknown, and registers custom trackers if passed via query string.
+      description: Returns 200 OK with available data (nullable if uninitialized), increments Redis hit count (12h hourly bucket synced to CouchDB), auto-enqueues scrape if unknown, and registers custom trackers if passed via query string.
       parameters:
         - name: hash
           in: path
@@ -31,24 +31,34 @@ paths:
               schema:
                 type: object
                 properties:
-                  infoHash:
+                  info_hash:
                     type: string
                   name:
                     type: string
-                  totalSize:
+                    nullable: true
+                  total_size:
                     type: integer
-                  torrentStorageRef:
+                    nullable: true
+                  storage_profile_key:
                     type: string
-                  downloadUrl:
+                    nullable: true
+                  storage_params:
+                    type: object
+                    nullable: true
+                    description: Dictionary of parameters used with storage profile template to construct download URL
+                  download_url:
                     type: string
+                    nullable: true
                     description: Public download URL for the .torrent file generated via storage profile template
-                  totalHits:
+                  total_hits:
                     type: integer
-                  lastHitAt:
+                  last_hit_at:
                     type: string
                     format: date-time
+                    nullable: true
                   files:
                     type: array
+                    nullable: true
                     items:
                       type: object
                       properties:
@@ -58,18 +68,18 @@ paths:
                             type: string
                         length:
                           type: integer
-                  trackerStats:
+                  tracker_stats:
                     type: array
                     items:
                       type: object
                       properties:
-                        trackerUrl:
+                        tracker_url:
                           type: string
                         seeds:
                           type: integer
                         peers:
                           type: integer
-                        updatedAt:
+                        updated_at:
                           type: string
                           format: date-time
                   tasks:
@@ -77,12 +87,12 @@ paths:
                     items:
                       type: object
                       properties:
-                        taskId:
+                        task_id:
                           type: string
                         status:
                           type: string
                           enum: [pending, claimed, scraping, completed, failed]
-                        createdAt:
+                        created_at:
                           type: string
                           format: date-time
         '422':
@@ -111,14 +121,14 @@ paths:
               schema:
                 type: object
                 properties:
-                  taskId:
+                  task_id:
                     type: string
-                  infoHash:
+                  info_hash:
                     type: string
-                  taskType:
+                  task_type:
                     type: string
                     enum: [scrape_torrent, scrape_stats]
-                  leaseExpiresAt:
+                  lease_expires_at:
                     type: string
                     format: date-time
         '204':
@@ -129,7 +139,7 @@ paths:
   /worker/torrents:
     post:
       summary: Upload raw .torrent file and metadata (handled by API agnostic storage)
-      description: Called by remote workers upon successfully resolving and downloading a .torrent file. API uploads to storage profile (FTP/fsspec) and records profile ID & file path.
+      description: Called by remote workers upon successfully resolving and downloading a .torrent file. API uploads to storage profile and records profile key & storage parameters.
       parameters:
         - name: X-Worker-Key
           in: header
@@ -143,18 +153,24 @@ paths:
             schema:
               type: object
               required:
-                - infoHash
+                - info_hash
                 - name
-                - totalSize
-                - torrentFile
+                - total_size
+                - torrent_file
               properties:
-                infoHash:
+                info_hash:
                   type: string
                 name:
                   type: string
-                totalSize:
+                total_size:
                   type: integer
-                torrentFile:
+                storage_profile_key:
+                  type: string
+                  description: Optional explicit storage profile key to use
+                storage_params:
+                  type: string
+                  description: JSON stringified dictionary of parameters for the storage template
+                torrent_file:
                   type: string
                   format: binary
                   description: Raw .torrent file binary
@@ -191,10 +207,10 @@ paths:
             schema:
               type: object
               required:
-                - trackerUrl
+                - tracker_url
                 - success
               properties:
-                trackerUrl:
+                tracker_url:
                   type: string
                 success:
                   type: boolean

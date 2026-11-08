@@ -6,7 +6,7 @@ Each task is atomic, testable, and concludes with a verification gate and a git 
   - **Gate**: Dependencies configured in `pyproject.toml`, FastAPI app initialized, environment config loaded.
   - **Commit**: `feat(api): initialize FastAPI project setup and environment configuration`
 
-- [ ] **Task 2: CouchDB Repository Abstraction**
+- [x] **Task 2: CouchDB Repository Abstraction**
   - **Gate**: Pluggable repository pattern for CouchDB supporting `TorrentMetadata`, `StorageProfile`, and `WorkerKey` models.
   - **Commit**: `feat(api): implement CouchDB storage repository abstraction`
 
