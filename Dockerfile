@@ -1,5 +1,5 @@
 # Stage 1: Build dependencies
-FROM python:3.13-slim AS builder
+FROM python:3.15-slim AS builder
 
 WORKDIR /app
 
@@ -12,12 +12,12 @@ RUN poetry config virtualenvs.create false \
     && poetry install --only main --no-interaction --no-ansi
 
 # Stage 2: Runtime image
-FROM python:3.13-slim AS runtime
+FROM python:3.15-slim AS runtime
 
 WORKDIR /app
 
 # Copy installed python packages and binaries from builder
-COPY --from=builder /usr/local/lib/python3.13/site-packages /usr/local/lib/python3.13/site-packages
+COPY --from=builder /usr/local/lib/python3.15/site-packages /usr/local/lib/python3.15/site-packages
 COPY --from=builder /usr/local/bin /usr/local/bin
 
 # Copy application source code (excluding api specification folder)
