@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import logging
 from datetime import UTC, datetime
 from typing import Annotated
 
@@ -35,6 +36,7 @@ router = APIRouter(prefix="/worker", tags=["worker"])
 torrent_repo = TorrentMetadataRepository()
 task_repo = TaskRepository()
 worker_key_repo = WorkerKeyRepository()
+logger = logging.getLogger("torrent_stats.worker")
 
 
 def verify_worker_key(
@@ -61,6 +63,7 @@ def claim_task(
 ):
     now = datetime.now(UTC)
     all_tasks = task_repo.find_claimable()
+    logger.debug("Evaluating task claim. Total tasks in repository: %d", len(all_tasks))
 
     candidates: list[TaskDocument] = []
     for task in all_tasks:
@@ -72,6 +75,11 @@ def claim_task(
         )
 
         if not (is_pending or is_expired_lease):
+            logger.debug(
+                "Task %s skipped: status '%s' not pending or expired lease.",
+                task.id,
+                task.status,
+            )
             continue
 
         # Check failure cooldown (12h)
@@ -80,6 +88,11 @@ def claim_task(
             if (
                 now - last_attempt
             ).total_seconds() < worker_settings.worker_failure_cooldown_seconds:
+                logger.debug(
+                    "Task %s skipped: failure cooldown active (last attempt at %s).",
+                    task.id,
+                    task.last_attempt_at,
+                )
                 continue
 
         # Check stats update cooldown (6h) for scrape_stats tasks
@@ -99,11 +112,20 @@ def claim_task(
                     and (now - datetime.fromisoformat(stat.updated_at)).total_seconds()
                     < worker_settings.worker_stats_cooldown_seconds
                 ):
+                    logger.debug(
+                        "Task %s skipped: stats update cooldown active for tracker %s.",
+                        task.id,
+                        task.tracker_url,
+                    )
                     continue
 
+        logger.debug(
+            "Task %s (type: %s) added as claim candidate.", task.id, task.task_type
+        )
         candidates.append(task)
 
     if not candidates:
+        logger.info("No claimable tasks available. Returning 204 No Content.")
         response.status_code = status.HTTP_204_NO_CONTENT
         return None
 
@@ -113,6 +135,12 @@ def claim_task(
     )
 
     task = candidates[0]
+    logger.debug(
+        "Selected top candidate task %s (type: %s) out of %d candidates.",
+        task.id,
+        task.task_type,
+        len(candidates),
+    )
 
     task.status = "claimed"
     task.claimed_at = now.isoformat()
@@ -121,6 +149,14 @@ def claim_task(
     task.last_attempt_at = now.isoformat()
 
     task_repo.save(task)
+
+    logger.info(
+        "Worker successfully claimed task %s for info_hash %s (type: %s, lease expires at %s).",
+        task.id,
+        task.info_hash,
+        task.task_type,
+        task.lease_expires_at,
+    )
 
     return {
         "task_id": task.id,
