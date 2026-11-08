@@ -1,0 +1,221 @@
+openapi: 3.0.3
+info:
+  title: Torrent Stats API
+  version: 1.0.0
+  description: API for resolving info hashes into .torrent files, detailed file trees, live tracker stats, and managing remote worker tasks.
+paths:
+  /torrents/{hash}:
+    get:
+      summary: Get torrent metadata, file tree, tracker stats, download URL, and task statuses
+      description: Returns 200 OK with available data, increments Redis hit count (12h hourly bucket synced to CouchDB), auto-enqueues scrape if unknown, and registers custom trackers if passed via query string.
+      parameters:
+        - name: hash
+          in: path
+          required: true
+          description: Torrent Info Hash (hex or b32)
+          schema:
+            type: string
+        - name: trackers
+          in: query
+          required: false
+          description: Optional custom tracker URL(s) to register and monitor
+          schema:
+            type: array
+            items:
+              type: string
+      responses:
+        '200':
+          description: Torrent details, download URL, and task statuses retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  infoHash:
+                    type: string
+                  name:
+                    type: string
+                  totalSize:
+                    type: integer
+                  torrentStorageRef:
+                    type: string
+                  downloadUrl:
+                    type: string
+                    description: Public download URL for the .torrent file generated via storage profile template
+                  totalHits:
+                    type: integer
+                  lastHitAt:
+                    type: string
+                    format: date-time
+                  files:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        path:
+                          type: array
+                          items:
+                            type: string
+                        length:
+                          type: integer
+                  trackerStats:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        trackerUrl:
+                          type: string
+                        seeds:
+                          type: integer
+                        peers:
+                          type: integer
+                        updatedAt:
+                          type: string
+                          format: date-time
+                  tasks:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        taskId:
+                          type: string
+                        status:
+                          type: string
+                          enum: [pending, claimed, scraping, completed, failed]
+                        createdAt:
+                          type: string
+                          format: date-time
+        '422':
+          description: Invalid info hash format
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /worker/tasks/claim:
+    post:
+      summary: Claim a prioritized scrape task for remote workers
+      description: Authenticates via X-Worker-Key header, applies failure cooldowns (12h) for new torrents and update cooldowns (6h) for tracker stats, setting a lease ACK expiration.
+      parameters:
+        - name: X-Worker-Key
+          in: header
+          required: true
+          description: Worker API Key stored in CouchDB
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Task successfully claimed
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  taskId:
+                    type: string
+                  infoHash:
+                    type: string
+                  taskType:
+                    type: string
+                    enum: [scrape_torrent, scrape_stats]
+                  leaseExpiresAt:
+                    type: string
+                    format: date-time
+        '204':
+          description: No pending tasks available
+        '401':
+          description: Unauthorized - missing or invalid X-Worker-Key
+
+  /worker/torrents:
+    post:
+      summary: Upload raw .torrent file and metadata (handled by API agnostic storage)
+      description: Called by remote workers upon successfully resolving and downloading a .torrent file. API uploads to storage profile (FTP/fsspec) and records profile ID & file path.
+      parameters:
+        - name: X-Worker-Key
+          in: header
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required:
+                - infoHash
+                - name
+                - totalSize
+                - torrentFile
+              properties:
+                infoHash:
+                  type: string
+                name:
+                  type: string
+                totalSize:
+                  type: integer
+                torrentFile:
+                  type: string
+                  format: binary
+                  description: Raw .torrent file binary
+                files:
+                  type: string
+                  description: JSON stringified file tree
+      responses:
+        '201':
+          description: Torrent file successfully stored via active profile and metadata saved
+        '400':
+          description: Bad request / missing required fields
+        '401':
+          description: Unauthorized
+
+  /worker/torrents/{hash}/stats:
+    post:
+      summary: Submit tracker peer/seed counts and scrape results
+      description: Reports tracker stats and scrape success/failure. Automatically prunes trackers after 3 consecutive failures.
+      parameters:
+        - name: hash
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: X-Worker-Key
+          in: header
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - trackerUrl
+                - success
+              properties:
+                trackerUrl:
+                  type: string
+                success:
+                  type: boolean
+                seeds:
+                  type: integer
+                peers:
+                  type: integer
+      responses:
+        '200':
+          description: Tracker stats updated successfully
+        '400':
+          description: Bad request
+        '401':
+          description: Unauthorized
+
+components:
+  schemas:
+    ErrorResponse:
+      type: object
+      properties:
+        error:
+          type: string
+        message:
+          type: string
