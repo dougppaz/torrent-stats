@@ -2,8 +2,16 @@ from __future__ import annotations
 
 from typing import Any
 
-import fsspec
+from torrent_stats.services.storage.base import BaseStorage
+from torrent_stats.services.storage.ftp import FTPStorage
+from torrent_stats.services.storage.local import LocalStorage
 from torrent_stats.settings import StorageProfileConfig, storage_profiles_settings
+
+STORAGE_REGISTRY: dict[str, type[BaseStorage]] = {
+    "ftp": FTPStorage,
+    "local": LocalStorage,
+    "file": LocalStorage,
+}
 
 
 class StorageManager:
@@ -19,37 +27,31 @@ class StorageManager:
                 raise ValueError("No storage profiles configured.")
         return profile_key, profile
 
+    def get_storage_handler(
+        self, profile_key: str | None = None
+    ) -> tuple[str, BaseStorage]:
+        if profile_key and profile_key in storage_profiles_settings.profiles:
+            pk = profile_key
+            profile = storage_profiles_settings.profiles[pk]
+        else:
+            pk, profile = self.get_active_profile()
+
+        storage_class = STORAGE_REGISTRY.get(profile.type)
+        if not storage_class:
+            raise ValueError(f"Unsupported storage profile type: '{profile.type}'")
+
+        return pk, storage_class(profile)
+
     def upload_torrent(
         self,
         info_hash: str,
         file_bytes: bytes,
         explicit_profile_key: str | None = None,
     ) -> tuple[str, dict[str, Any], str]:
-        if (
-            explicit_profile_key
-            and explicit_profile_key in storage_profiles_settings.profiles
-        ):
-            profile_key = explicit_profile_key
-            profile = storage_profiles_settings.profiles[profile_key]
-        else:
-            profile_key, profile = self.get_active_profile()
+        profile_key, handler = self.get_storage_handler(explicit_profile_key)
 
-        file_path = f"torrents/{info_hash}.torrent"
-        storage_params = {"file_path": file_path}
-
-        fs_type = profile.type
-        fs_config = profile.config.copy()
-        url_template = fs_config.pop("url_template", None)
-        if not url_template:
-            raise ValueError(
-                f"Storage profile '{profile_key}' is missing 'url_template' in config."
-            )
-
-        fs = fsspec.filesystem(fs_type, **fs_config)
-        with fs.open(file_path, "wb") as f:
-            f.write(file_bytes)
-
-        download_url = str(url_template).format(**storage_params)
+        storage_params = handler.upload(info_hash, file_bytes)
+        download_url = handler.get_download_url(storage_params)
 
         return profile_key, storage_params, download_url
 
@@ -61,13 +63,13 @@ class StorageManager:
         profile = storage_profiles_settings.profiles.get(profile_key)
         if not profile:
             return None
-        url_template = profile.config.get("url_template")
-        if not url_template:
+        storage_class = STORAGE_REGISTRY.get(profile.type)
+        if not storage_class:
             return None
+        handler = storage_class(profile)
         try:
-            url: str = str(url_template).format(**storage_params)
-            return url
-        except KeyError:
+            return handler.get_download_url(storage_params)
+        except (ValueError, KeyError):
             return None
 
 

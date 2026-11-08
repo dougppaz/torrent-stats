@@ -12,6 +12,7 @@ dist/
 build/
 .coverage
 .pytest_cache/
+.torrents/
 
 # OS X
 .DS_Store
