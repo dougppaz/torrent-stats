@@ -14,7 +14,7 @@ Resolving info hashes into .torrent files, detailed file trees, and live peer/se
 
 ### Prerequisites
 
-- Python 3.11+ / 3.13+
+- Python 3.15+
 - Poetry
 - Go 1.21+ (for worker)
 - Docker & Docker Compose
