@@ -10,6 +10,7 @@ from pydantic_settings import BaseSettings
 class AppSettings(BaseSettings):
     app_name: str = "torrent-stats API"
     debug: bool = False
+    log_level: str = "INFO"
 
     model_config = {"env_file": ".env", "extra": "ignore"}
 
