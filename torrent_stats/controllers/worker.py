@@ -17,29 +17,21 @@ from torrent_stats.db.models import (
 from torrent_stats.db.repository import (
     TaskRepository,
     TorrentMetadataRepository,
-    WorkerKeyRepository,
 )
 from torrent_stats.services.storage import StorageManager
-from torrent_stats.services.storage import storage_manager as _storage_mgr
 from torrent_stats.settings import WorkerSettings
-from torrent_stats.settings import worker_settings as _worker_settings
 
-task_repo = TaskRepository()
-torrent_repo = TorrentMetadataRepository()
-worker_key_repo = WorkerKeyRepository()
-storage_manager = _storage_mgr
-worker_settings = _worker_settings
 logger = logging.getLogger("torrent_stats.worker")
 
 
 class TaskClaimController:
     def __init__(
         self,
-        task_repository: TaskRepository | None = None,
-        worker_settings: WorkerSettings | None = None,
+        task_repository: TaskRepository,
+        worker_settings: WorkerSettings,
     ) -> None:
-        self.task_repo = task_repository or globals()["task_repo"]
-        self.worker_settings = worker_settings or globals()["worker_settings"]
+        self.task_repo = task_repository
+        self.worker_settings = worker_settings
 
     def claim_task(self) -> TaskClaimResponse | None:
         now = datetime.now(UTC)
@@ -132,13 +124,13 @@ class TaskClaimController:
 class TorrentUploadController:
     def __init__(
         self,
-        torrent_repository: TorrentMetadataRepository | None = None,
-        task_repository: TaskRepository | None = None,
-        storage_manager: StorageManager | None = None,
+        torrent_repository: TorrentMetadataRepository,
+        task_repository: TaskRepository,
+        storage_manager: StorageManager,
     ) -> None:
-        self.torrent_repo = torrent_repository or globals()["torrent_repo"]
-        self.task_repo = task_repository or globals()["task_repo"]
-        self.storage_manager = storage_manager or globals()["storage_manager"]
+        self.torrent_repo = torrent_repository
+        self.task_repo = task_repository
+        self.storage_manager = storage_manager
 
     async def upload_torrent(
         self,
@@ -212,11 +204,11 @@ class TorrentUploadController:
 class TrackerStatsController:
     def __init__(
         self,
-        torrent_repository: TorrentMetadataRepository | None = None,
-        task_repository: TaskRepository | None = None,
+        torrent_repository: TorrentMetadataRepository,
+        task_repository: TaskRepository,
     ) -> None:
-        self.torrent_repo = torrent_repository or globals()["torrent_repo"]
-        self.task_repo = task_repository or globals()["task_repo"]
+        self.torrent_repo = torrent_repository
+        self.task_repo = task_repository
 
     def submit_stats(
         self,

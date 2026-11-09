@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import logging
-from typing import Annotated
+from typing import Annotated, TypeAlias
 
 from fastapi import (
     APIRouter,
@@ -15,30 +15,26 @@ from fastapi import (
     status,
 )
 from pydantic import BaseModel
+from torrent_stats.api.depends import (
+    TaskRepositoryDepends,
+    TorrentRepositoryDepends,
+    WorkerKeyRepositoryDepends,
+)
 from torrent_stats.api.schemas import ActionSuccessResponse, TaskClaimResponse
 from torrent_stats.controllers.worker import (
     TaskClaimController,
     TorrentUploadController,
     TrackerStatsController,
 )
-from torrent_stats.db.repository import (
-    TaskRepository,
-    TorrentMetadataRepository,
-    WorkerKeyRepository,
-)
-from torrent_stats.services.storage import storage_manager as _storage_mgr
+from torrent_stats.services.storage import storage_manager
 from torrent_stats.settings import worker_settings
 
 router = APIRouter(prefix="/worker", tags=["worker"])
 logger = logging.getLogger("torrent_stats.worker")
 
-task_repo = TaskRepository()
-torrent_repo = TorrentMetadataRepository()
-worker_key_repo = WorkerKeyRepository()
-storage_manager = _storage_mgr
-
 
 def verify_worker_key(
+    worker_key_repository: WorkerKeyRepositoryDepends,
     x_worker_key: Annotated[str | None, Header(alias="X-Worker-Key")] = None,
 ) -> str:
     if not x_worker_key:
@@ -48,7 +44,7 @@ def verify_worker_key(
         )
     if worker_settings.worker_allow_any_key:
         return x_worker_key
-    worker_key = worker_key_repo.find_by_key_hash(x_worker_key)
+    worker_key = worker_key_repository.find_by_key_hash(x_worker_key)
     if not worker_key:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
@@ -57,23 +53,45 @@ def verify_worker_key(
     return x_worker_key
 
 
-def get_task_claim_controller() -> TaskClaimController:
-    return TaskClaimController(task_repository=task_repo)
+def get_task_claim_controller(
+    task_repository: TaskRepositoryDepends,
+) -> TaskClaimController:
+    return TaskClaimController(
+        task_repository=task_repository,
+        worker_settings=worker_settings,
+    )
 
 
-def get_torrent_upload_controller() -> TorrentUploadController:
+def get_torrent_upload_controller(
+    torrent_repository: TorrentRepositoryDepends,
+    task_repository: TaskRepositoryDepends,
+) -> TorrentUploadController:
     return TorrentUploadController(
-        torrent_repository=torrent_repo,
-        task_repository=task_repo,
+        torrent_repository=torrent_repository,
+        task_repository=task_repository,
         storage_manager=storage_manager,
     )
 
 
-def get_tracker_stats_controller() -> TrackerStatsController:
+def get_tracker_stats_controller(
+    torrent_repository: TorrentRepositoryDepends,
+    task_repository: TaskRepositoryDepends,
+) -> TrackerStatsController:
     return TrackerStatsController(
-        torrent_repository=torrent_repo,
-        task_repository=task_repo,
+        torrent_repository=torrent_repository,
+        task_repository=task_repository,
     )
+
+
+TaskClaimControllerDepends: TypeAlias = Annotated[
+    TaskClaimController, Depends(get_task_claim_controller)
+]
+TorrentUploadControllerDepends: TypeAlias = Annotated[
+    TorrentUploadController, Depends(get_torrent_upload_controller)
+]
+TrackerStatsControllerDepends: TypeAlias = Annotated[
+    TrackerStatsController, Depends(get_tracker_stats_controller)
+]
 
 
 @router.post(
@@ -83,8 +101,8 @@ def get_tracker_stats_controller() -> TrackerStatsController:
 )
 def claim_task(
     response: Response,
+    controller: TaskClaimControllerDepends,
     _: str = Depends(verify_worker_key),
-    controller: TaskClaimController = Depends(get_task_claim_controller),  # noqa: B008
 ):
     res = controller.claim_task()
     if res is None:
@@ -102,12 +120,12 @@ async def upload_torrent(
     info_hash: Annotated[str, Form()],
     name: Annotated[str, Form()],
     total_size: Annotated[int, Form()],
+    controller: TorrentUploadControllerDepends,
     torrent_file: UploadFile = File(...),  # noqa: B008
     storage_profile_key: Annotated[str | None, Form()] = None,
     storage_params: Annotated[str | None, Form()] = None,
     files: Annotated[str | None, Form()] = None,
     _: str = Depends(verify_worker_key),
-    controller: TorrentUploadController = Depends(get_torrent_upload_controller),  # noqa: B008
 ):
     return await controller.upload_torrent(
         info_hash=info_hash,
@@ -135,8 +153,8 @@ class TrackerStatsSubmit(BaseModel):
 def submit_tracker_stats(
     hash: str,
     payload: TrackerStatsSubmit,
+    controller: TrackerStatsControllerDepends,
     _: str = Depends(verify_worker_key),
-    controller: TrackerStatsController = Depends(get_tracker_stats_controller),  # noqa: B008
 ):
     return controller.submit_stats(
         hash=hash,
