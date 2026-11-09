@@ -15,7 +15,7 @@ class TrackerStat(BaseModel):
     tracker_url: str
     seeds: int = 0
     peers: int = 0
-    updated_at: str = Field(default_factory=lambda: datetime.now(UTC).isoformat())
+    updated_at: str = "1970-01-01T00:00:00Z"
     consecutive_failures: int = 0
 
 

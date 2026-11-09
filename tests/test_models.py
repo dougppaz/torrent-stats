@@ -1,4 +1,9 @@
-from torrent_stats.db.models import TorrentFile, TorrentMetadata, WorkerKey
+from torrent_stats.db.models import (
+    TorrentFile,
+    TorrentMetadata,
+    TrackerStat,
+    WorkerKey,
+)
 
 
 def test_torrent_metadata_model():
@@ -18,3 +23,8 @@ def test_worker_key_model():
     wk = WorkerKey(key_hash="hash123", description="Test Worker")
     assert wk.key_hash == "hash123"
     assert wk.description == "Test Worker"
+
+
+def test_tracker_stat_initial_updated_at():
+    stat = TrackerStat(tracker_url="udp://tracker.test:1337/announce")
+    assert stat.updated_at == "1970-01-01T00:00:00Z"
