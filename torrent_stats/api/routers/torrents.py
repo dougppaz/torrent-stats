@@ -1,31 +1,32 @@
 from __future__ import annotations
 
-from typing import Annotated
+from typing import Annotated, TypeAlias
 
 from fastapi import APIRouter, Depends, Query, status
-from torrent_stats.api.controllers.torrents import TorrentController
+from torrent_stats.api.depends import TaskRepositoryDepends, TorrentRepositoryDepends
 from torrent_stats.api.schemas import TorrentDetailResponse
-from torrent_stats.db.repository import TaskRepository, TorrentMetadataRepository
-from torrent_stats.services.hit_counter import (
-    hit_counter_service as _hit_counter_svc,
-)
-from torrent_stats.services.storage import storage_manager as _storage_mgr
+from torrent_stats.controllers.torrents import TorrentController
+from torrent_stats.services.hit_counter import hit_counter_service
+from torrent_stats.services.storage import storage_manager
 
 router = APIRouter(prefix="/torrents", tags=["torrents"])
 
-torrent_repo = TorrentMetadataRepository()
-task_repo = TaskRepository()
-hit_counter_service = _hit_counter_svc
-storage_manager = _storage_mgr
 
-
-def get_torrent_controller() -> TorrentController:
+def get_torrent_controller(
+    torrent_repository: TorrentRepositoryDepends,
+    task_repository: TaskRepositoryDepends,
+) -> TorrentController:
     return TorrentController(
-        torrent_repo=torrent_repo,
-        task_repo=task_repo,
+        torrent_repository=torrent_repository,
+        task_repository=task_repository,
         hit_counter=hit_counter_service,
         storage_manager=storage_manager,
     )
+
+
+TorrentControllerDepends: TypeAlias = Annotated[
+    TorrentController, Depends(get_torrent_controller)
+]
 
 
 @router.get(
@@ -33,9 +34,9 @@ def get_torrent_controller() -> TorrentController:
 )
 def get_torrent(
     hash: str,
+    controller: TorrentControllerDepends,
     trackers: Annotated[
         list[str] | None, Query(description="Custom tracker URLs")
     ] = None,
-    controller: TorrentController = Depends(get_torrent_controller),  # noqa: B008
 ):
     return controller.get_torrent(hash, trackers)

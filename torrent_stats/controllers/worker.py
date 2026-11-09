@@ -6,6 +6,7 @@ from datetime import UTC, datetime
 
 import pydantic
 from fastapi import UploadFile
+
 from torrent_stats.api.schemas import ActionSuccessResponse, TaskClaimResponse
 from torrent_stats.db.models import (
     TaskDocument,
@@ -34,10 +35,10 @@ logger = logging.getLogger("torrent_stats.worker")
 class TaskClaimController:
     def __init__(
         self,
-        task_repo: TaskRepository | None = None,
+        task_repository: TaskRepository | None = None,
         worker_settings: WorkerSettings | None = None,
     ) -> None:
-        self.task_repo = task_repo or globals()["task_repo"]
+        self.task_repo = task_repository or globals()["task_repo"]
         self.worker_settings = worker_settings or globals()["worker_settings"]
 
     def claim_task(self) -> TaskClaimResponse | None:
@@ -131,12 +132,12 @@ class TaskClaimController:
 class TorrentUploadController:
     def __init__(
         self,
-        torrent_repo: TorrentMetadataRepository | None = None,
-        task_repo: TaskRepository | None = None,
+        torrent_repository: TorrentMetadataRepository | None = None,
+        task_repository: TaskRepository | None = None,
         storage_manager: StorageManager | None = None,
     ) -> None:
-        self.torrent_repo = torrent_repo or globals()["torrent_repo"]
-        self.task_repo = task_repo or globals()["task_repo"]
+        self.torrent_repo = torrent_repository or globals()["torrent_repo"]
+        self.task_repo = task_repository or globals()["task_repo"]
         self.storage_manager = storage_manager or globals()["storage_manager"]
 
     async def upload_torrent(
@@ -211,11 +212,11 @@ class TorrentUploadController:
 class TrackerStatsController:
     def __init__(
         self,
-        torrent_repo: TorrentMetadataRepository | None = None,
-        task_repo: TaskRepository | None = None,
+        torrent_repository: TorrentMetadataRepository | None = None,
+        task_repository: TaskRepository | None = None,
     ) -> None:
-        self.torrent_repo = torrent_repo or globals()["torrent_repo"]
-        self.task_repo = task_repo or globals()["task_repo"]
+        self.torrent_repo = torrent_repository or globals()["torrent_repo"]
+        self.task_repo = task_repository or globals()["task_repo"]
 
     def submit_stats(
         self,

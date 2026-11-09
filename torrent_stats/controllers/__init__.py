@@ -1,7 +1,7 @@
 from __future__ import annotations
 
-from torrent_stats.api.controllers.torrents import TorrentController
-from torrent_stats.api.controllers.worker import (
+from torrent_stats.controllers.torrents import TorrentController
+from torrent_stats.controllers.worker import (
     TaskClaimController,
     TorrentUploadController,
     TrackerStatsController,

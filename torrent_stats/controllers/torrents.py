@@ -15,13 +15,13 @@ from torrent_stats.services.storage import StorageManager
 class TorrentController:
     def __init__(
         self,
-        torrent_repo: TorrentMetadataRepository,
-        task_repo: TaskRepository,
+        torrent_repository: TorrentMetadataRepository,
+        task_repository: TaskRepository,
         hit_counter: HitCounterService,
         storage_manager: StorageManager,
     ) -> None:
-        self.torrent_repo = torrent_repo
-        self.task_repo = task_repo
+        self.torrent_repository = torrent_repository
+        self.task_repository = task_repository
         self.hit_counter = hit_counter
         self.storage_manager = storage_manager
 
@@ -31,13 +31,13 @@ class TorrentController:
         total_hits, last_hit_at = self.hit_counter.record_hit(hash)
         current_request_timestamp = last_hit_at
 
-        torrent, _ = self.torrent_repo.get_or_create(
+        torrent, _ = self.torrent_repository.get_or_create(
             hash, total_hits=total_hits, last_hit_at=current_request_timestamp
         )
 
-        existing_tasks = self.task_repo.find_by_info_hash(hash)
+        existing_tasks = self.task_repository.find_by_info_hash(hash)
         if not any(t.task_type == "scrape_torrent" for t in existing_tasks):
-            self.task_repo.save(
+            self.task_repository.save(
                 TaskDocument(
                     info_hash=hash,
                     task_type="scrape_torrent",
@@ -62,7 +62,7 @@ class TorrentController:
                         t.task_type == "scrape_stats" and t.tracker_url == tr
                         for t in existing_tasks
                     ):
-                        self.task_repo.save(
+                        self.task_repository.save(
                             TaskDocument(
                                 info_hash=hash,
                                 task_type="scrape_stats",
@@ -72,9 +72,9 @@ class TorrentController:
                                 created_at=current_request_timestamp,
                             )
                         )
-            self.torrent_repo.save(torrent)
+            self.torrent_repository.save(torrent)
 
-        active_tasks = self.task_repo.find_by_info_hash(hash)
+        active_tasks = self.task_repository.find_by_info_hash(hash)
 
         download_url = None
         if torrent.storage_profile_key and torrent.storage_params:

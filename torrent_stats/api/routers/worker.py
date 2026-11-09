@@ -15,12 +15,12 @@ from fastapi import (
     status,
 )
 from pydantic import BaseModel
-from torrent_stats.api.controllers.worker import (
+from torrent_stats.api.schemas import ActionSuccessResponse, TaskClaimResponse
+from torrent_stats.controllers.worker import (
     TaskClaimController,
     TorrentUploadController,
     TrackerStatsController,
 )
-from torrent_stats.api.schemas import ActionSuccessResponse, TaskClaimResponse
 from torrent_stats.db.repository import (
     TaskRepository,
     TorrentMetadataRepository,
@@ -58,21 +58,21 @@ def verify_worker_key(
 
 
 def get_task_claim_controller() -> TaskClaimController:
-    return TaskClaimController(task_repo=task_repo)
+    return TaskClaimController(task_repository=task_repo)
 
 
 def get_torrent_upload_controller() -> TorrentUploadController:
     return TorrentUploadController(
-        torrent_repo=torrent_repo,
-        task_repo=task_repo,
+        torrent_repository=torrent_repo,
+        task_repository=task_repo,
         storage_manager=storage_manager,
     )
 
 
 def get_tracker_stats_controller() -> TrackerStatsController:
     return TrackerStatsController(
-        torrent_repo=torrent_repo,
-        task_repo=task_repo,
+        torrent_repository=torrent_repo,
+        task_repository=task_repo,
     )
 
 
