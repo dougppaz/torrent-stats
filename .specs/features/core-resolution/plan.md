@@ -64,7 +64,7 @@ New: `TorrentMetadata`, `TrackerStats`, and `WorkerKey` entities. One-way constr
 
 | One-way door | Literal shape | Alternative rejected |
 | --- | --- | --- |
-| 1. CouchDB Python Repository Pattern | Pluggable Repository pattern using official `couchdb` library | Hardcoded CouchDB HTTP client calls (rejected due to lack of idiomatic python driver abstractions) |
+| 1. CouchDB Python Repository Pattern | Pluggable Repository pattern using official `couchdb` library, with dedicated CouchDB databases for torrent metadata and background tasks | Hardcoded CouchDB HTTP client calls or single monolithic database (rejected due to lack of idiomatic python driver abstractions and query bottlenecks) |
 | 2. Salted HMAC-SHA256 Worker Keys | Hashed worker keys stored in CouchDB, validated via `X-Worker-Key` header with env salt | Plaintext worker keys in database (rejected due to severe security risks) |
 | 3. Agnostic Storage Profiles & Templates | Storage profile settings with config & URL template (`https://domain/{file_path}`) | Hardcoded FTP client calls (rejected due to inflexibility for S3 or other storage drivers) |
 

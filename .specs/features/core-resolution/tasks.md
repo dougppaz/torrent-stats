@@ -22,6 +22,6 @@ Each task is atomic, testable, and concludes with a verification gate and a git 
   - **Gate**: Implements `GET /torrents/:hash` returning 200 OK (with metadata, download URL, tracker stats, task statuses), recording sliding-window hits, auto-enqueuing missing hashes, and registering custom trackers via query params.
   - **Commit**: `feat(api): implement public GET /torrents/:hash endpoint with hit tracking and auto-enqueue`
 
-- [ ] **Task 6: Worker API Endpoints & Task Leasing (`/worker/*`)**
+- [x] **Task 6: Worker API Endpoints & Task Leasing (`/worker/*`)**
   - **Gate**: Implements authenticated worker endpoints (`POST /worker/tasks/claim` with 12h failure cooldown, 6h stats update cooldown, and lease/ACKs; `POST /worker/torrents` raw file upload; `POST /worker/torrents/{hash}/stats` with 3-consecutive-failure tracker pruning).
   - **Commit**: `feat(api): implement authenticated /worker/ endpoints, task leasing, and tracker pruning logic`

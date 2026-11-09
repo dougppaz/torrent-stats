@@ -7,6 +7,7 @@ services:
       - COUCHDB_URL=http://admin:admin@couchdb:5984
       - COUCHDB_DB_NAME=torrent_stats
       - REDIS_URL=redis://redis:6379/0
+      - WORKER_ALLOW_ANY_KEY=true
     depends_on:
       - couchdb
       - redis
