@@ -6,7 +6,7 @@ from pydantic import BaseModel
 
 
 class TorrentFileResponse(BaseModel):
-    path: str
+    path: list[str]
     length: int
 
 
