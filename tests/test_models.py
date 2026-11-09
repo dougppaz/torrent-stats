@@ -25,6 +25,8 @@ def test_worker_key_model():
     assert wk.description == "Test Worker"
 
 
-def test_tracker_stat_initial_updated_at():
+def test_tracker_stat_initial_nulls():
     stat = TrackerStat(tracker_url="udp://tracker.test:1337/announce")
-    assert stat.updated_at == "1970-01-01T00:00:00Z"
+    assert stat.updated_at is None
+    assert stat.seeds is None
+    assert stat.peers is None

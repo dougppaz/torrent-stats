@@ -82,29 +82,22 @@ def claim_task(
                 )
                 continue
 
-        # Check stats update cooldown (6h) for scrape_stats tasks
-        if task.task_type == "scrape_stats" and task.tracker_url:
-            torrent = torrent_repo.find_by_info_hash(task.info_hash)
-            if torrent and torrent.tracker_stats:
-                stat = next(
-                    (
-                        ts
-                        for ts in torrent.tracker_stats
-                        if ts.tracker_url == task.tracker_url
-                    ),
-                    None,
+        # Check stats update cooldown (6h) for scrape_stats tasks using denormalized tracker_updated_at
+        if (
+            task.task_type == "scrape_stats"
+            and task.tracker_url
+            and task.tracker_updated_at is not None
+        ):
+            tracker_updated = datetime.fromisoformat(task.tracker_updated_at)
+            if (
+                now - tracker_updated
+            ).total_seconds() < worker_settings.worker_stats_cooldown_seconds:
+                logger.debug(
+                    "Task %s skipped: stats update cooldown active for tracker %s.",
+                    task.id,
+                    task.tracker_url,
                 )
-                if (
-                    stat
-                    and (now - datetime.fromisoformat(stat.updated_at)).total_seconds()
-                    < worker_settings.worker_stats_cooldown_seconds
-                ):
-                    logger.debug(
-                        "Task %s skipped: stats update cooldown active for tracker %s.",
-                        task.id,
-                        task.tracker_url,
-                    )
-                    continue
+                continue
 
         logger.debug(
             "Task %s (type: %s) added as claim candidate.", task.id, task.task_type
@@ -149,6 +142,8 @@ def claim_task(
         "task_id": task.id,
         "info_hash": task.info_hash,
         "task_type": task.task_type,
+        "tracker_url": task.tracker_url,
+        "updated_at": task.tracker_updated_at,
         "lease_expires_at": task.lease_expires_at,
     }
 
@@ -291,6 +286,8 @@ def submit_tracker_stats(
     if stat_task:
         stat_task.status = "completed" if payload.success else "failed"
         stat_task.last_attempt_at = now
+        if payload.success:
+            stat_task.tracker_updated_at = now
         task_repo.save(stat_task)
 
     return {"status": "success", "info_hash": hash}

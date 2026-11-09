@@ -13,9 +13,9 @@ class TorrentFile(BaseModel):
 
 class TrackerStat(BaseModel):
     tracker_url: str
-    seeds: int = 0
-    peers: int = 0
-    updated_at: str = "1970-01-01T00:00:00Z"
+    seeds: int | None = None
+    peers: int | None = None
+    updated_at: str | None = None
     consecutive_failures: int = 0
 
 
@@ -42,6 +42,7 @@ class TaskDocument(BaseModel):
     last_attempt_at: str | None = None
     error_message: str | None = None
     tracker_url: str | None = None
+    tracker_updated_at: str | None = None
 
     @model_validator(mode="after")
     def set_id(self) -> TaskDocument:

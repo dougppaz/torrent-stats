@@ -42,7 +42,14 @@ def get_torrent(
         existing_tracker_urls = {ts.tracker_url for ts in torrent.tracker_stats}
         for tr in trackers:
             if tr not in existing_tracker_urls:
-                torrent.tracker_stats.append(TrackerStat(tracker_url=tr))
+                torrent.tracker_stats.append(
+                    TrackerStat(
+                        tracker_url=tr,
+                        seeds=None,
+                        peers=None,
+                        updated_at=None,
+                    )
+                )
                 if not any(
                     t.task_type == "scrape_stats" and t.tracker_url == tr
                     for t in existing_tasks
@@ -53,6 +60,7 @@ def get_torrent(
                             task_type="scrape_stats",
                             status="pending",
                             tracker_url=tr,
+                            tracker_updated_at=None,
                             created_at=current_request_timestamp,
                         )
                     )
@@ -89,6 +97,8 @@ def get_torrent(
             {
                 "task_id": t.id,
                 "status": t.status,
+                "tracker_url": t.tracker_url,
+                "updated_at": t.tracker_updated_at,
                 "created_at": t.created_at,
             }
             for t in active_tasks
