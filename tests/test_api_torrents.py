@@ -9,10 +9,10 @@ from torrent_stats.main import app
 client = TestClient(app)
 
 
-@patch("torrent_stats.api.controllers.torrents.task_repo")
-@patch("torrent_stats.api.controllers.torrents.storage_manager")
-@patch("torrent_stats.api.controllers.torrents.torrent_repo")
-@patch("torrent_stats.api.controllers.torrents.hit_counter_service")
+@patch("torrent_stats.api.routers.torrents.task_repo")
+@patch("torrent_stats.api.routers.torrents.storage_manager")
+@patch("torrent_stats.api.routers.torrents.torrent_repo")
+@patch("torrent_stats.api.routers.torrents.hit_counter_service")
 def test_get_torrent_endpoint_missing(
     mock_hit_counter, mock_repo, mock_storage, mock_task_repo
 ):
@@ -39,10 +39,10 @@ def test_get_torrent_endpoint_missing(
     assert data["tasks"][0]["status"] == "pending"
 
 
-@patch("torrent_stats.api.controllers.torrents.task_repo")
-@patch("torrent_stats.api.controllers.torrents.storage_manager")
-@patch("torrent_stats.api.controllers.torrents.torrent_repo")
-@patch("torrent_stats.api.controllers.torrents.hit_counter_service")
+@patch("torrent_stats.api.routers.torrents.task_repo")
+@patch("torrent_stats.api.routers.torrents.storage_manager")
+@patch("torrent_stats.api.routers.torrents.torrent_repo")
+@patch("torrent_stats.api.routers.torrents.hit_counter_service")
 def test_get_torrent_endpoint_existing(
     mock_hit_counter, mock_repo, mock_storage, mock_task_repo
 ):

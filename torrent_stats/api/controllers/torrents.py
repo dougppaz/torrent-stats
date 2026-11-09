@@ -8,37 +8,22 @@ from torrent_stats.api.schemas import (
 )
 from torrent_stats.db.models import TaskDocument, TrackerStat
 from torrent_stats.db.repository import TaskRepository, TorrentMetadataRepository
-from torrent_stats.services.hit_counter import (
-    HitCounterService,
-)
-from torrent_stats.services.hit_counter import (
-    hit_counter_service as _hit_counter_svc,
-)
-from torrent_stats.services.storage import (
-    StorageManager,
-)
-from torrent_stats.services.storage import (
-    storage_manager as _storage_mgr,
-)
-
-torrent_repo = TorrentMetadataRepository()
-task_repo = TaskRepository()
-hit_counter_service = _hit_counter_svc
-storage_manager = _storage_mgr
+from torrent_stats.services.hit_counter import HitCounterService
+from torrent_stats.services.storage import StorageManager
 
 
 class TorrentController:
     def __init__(
         self,
-        torrent_repo: TorrentMetadataRepository | None = None,
-        task_repo: TaskRepository | None = None,
-        hit_counter: HitCounterService | None = None,
-        storage_manager_instance: StorageManager | None = None,
+        torrent_repo: TorrentMetadataRepository,
+        task_repo: TaskRepository,
+        hit_counter: HitCounterService,
+        storage_manager: StorageManager,
     ) -> None:
-        self.torrent_repo = torrent_repo or globals()["torrent_repo"]
-        self.task_repo = task_repo or globals()["task_repo"]
-        self.hit_counter = hit_counter or globals()["hit_counter_service"]
-        self.storage_manager = storage_manager_instance or globals()["storage_manager"]
+        self.torrent_repo = torrent_repo
+        self.task_repo = task_repo
+        self.hit_counter = hit_counter
+        self.storage_manager = storage_manager
 
     def get_torrent(
         self, hash: str, trackers: list[str] | None = None
