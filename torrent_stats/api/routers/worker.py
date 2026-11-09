@@ -47,6 +47,8 @@ def verify_worker_key(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Missing X-Worker-Key header",
         )
+    if worker_settings.worker_allow_any_key:
+        return x_worker_key
     worker_key = worker_key_repo.find_by_key_hash(x_worker_key)
     if not worker_key:
         raise HTTPException(
@@ -67,21 +69,6 @@ def claim_task(
 
     candidates: list[TaskDocument] = []
     for task in all_tasks:
-        is_pending = task.status == "pending"
-        is_expired_lease = (
-            task.status in ("claimed", "scraping")
-            and task.lease_expires_at
-            and datetime.fromisoformat(task.lease_expires_at) < now
-        )
-
-        if not (is_pending or is_expired_lease):
-            logger.debug(
-                "Task %s skipped: status '%s' not pending or expired lease.",
-                task.id,
-                task.status,
-            )
-            continue
-
         # Check failure cooldown (12h)
         if task.last_attempt_at and task.status == "failed":
             last_attempt = datetime.fromisoformat(task.last_attempt_at)

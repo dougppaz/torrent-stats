@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import logging
+from datetime import UTC, datetime
 from typing import Generic, TypeVar
 
 from pydantic import BaseModel
@@ -9,6 +11,7 @@ from torrent_stats.db.models import TaskDocument, TorrentMetadata, WorkerKey
 from torrent_stats.settings import couchdb_settings
 
 T = TypeVar("T", bound=BaseModel)
+logger = logging.getLogger(__name__)
 
 
 class BaseRepository(Generic[T]):
@@ -89,6 +92,28 @@ class TaskRepository(BaseRepository[TaskDocument]):
     def __init__(self) -> None:
         super().__init__(TaskDocument)
         self.client = CouchDBClient(db_name=f"{couchdb_settings.couchdb_db_name}_tasks")
+        self.ensure_view_exists()
+
+    def ensure_view_exists(self) -> None:
+        try:
+            db = self.client.get_db()
+            design_id = "_design/tasks"
+            doc = db.get(design_id)
+            view_map = """
+            function(doc) {
+                if (doc.status) {
+                    var lease = doc.lease_expires_at ? doc.lease_expires_at : "";
+                    emit([doc.status, lease], null);
+                }
+            }
+            """
+            if not doc:
+                db.save({"_id": design_id, "views": {"claimable": {"map": view_map}}})
+            elif "views" not in doc or "claimable" not in doc["views"]:
+                doc["views"] = {"claimable": {"map": view_map}}
+                db.save(doc)
+        except Exception:
+            logger.debug("Failed to ensure tasks view exists", exc_info=True)
 
     def find_by_info_hash(self, info_hash: str) -> list[TaskDocument]:
         docs = self.client.find_by_selector({"info_hash": info_hash})
@@ -99,6 +124,46 @@ class TaskRepository(BaseRepository[TaskDocument]):
         return [TaskDocument.model_validate(d) for d in docs if d]
 
     def find_claimable(self) -> list[TaskDocument]:
-        db = self.client.get_db()
-        docs = [db.get(doc_id) for doc_id in db if not doc_id.startswith("_")]
-        return [TaskDocument.model_validate(d) for d in docs if d is not None]
+        now_iso = datetime.now(UTC).isoformat()
+        try:
+            db = self.client.get_db()
+            docs = []
+
+            res_pending = db.view(
+                "tasks/claimable",
+                startkey=["pending", ""],
+                endkey=["pending", {}],
+                include_docs=True,
+            )
+            for row in res_pending:
+                if row.doc:
+                    docs.append(row.doc)
+
+            res_claimed = db.view(
+                "tasks/claimable",
+                startkey=["claimed", ""],
+                endkey=["claimed", now_iso],
+                include_docs=True,
+            )
+            for row in res_claimed:
+                if row.doc:
+                    docs.append(row.doc)
+
+            res_scraping = db.view(
+                "tasks/claimable",
+                startkey=["scraping", ""],
+                endkey=["scraping", now_iso],
+                include_docs=True,
+            )
+            for row in res_scraping:
+                if row.doc:
+                    docs.append(row.doc)
+
+            return [TaskDocument.model_validate(dict(d)) for d in docs]
+        except Exception:
+            logger.debug(
+                "Failed to query tasks/claimable view, falling back", exc_info=True
+            )
+            db = self.client.get_db()
+            all_docs = [db.get(doc_id) for doc_id in db if not doc_id.startswith("_")]
+            return [TaskDocument.model_validate(d) for d in all_docs if d is not None]
