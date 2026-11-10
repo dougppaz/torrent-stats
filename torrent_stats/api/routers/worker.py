@@ -22,11 +22,9 @@ from torrent_stats.api.depends import (
     WorkerKeyRepositoryDepends,
 )
 from torrent_stats.api.schemas import ActionSuccessResponse, TaskClaimResponse
-from torrent_stats.controllers.worker import (
-    TaskClaimController,
-    TorrentUploadController,
-    TrackerStatsController,
-)
+from torrent_stats.controllers.claim_task import TaskClaimController
+from torrent_stats.controllers.submit_tracker_stats import TrackerStatsController
+from torrent_stats.controllers.upload_torrent import TorrentUploadController
 from torrent_stats.settings import worker_settings
 
 router = APIRouter(prefix="/worker", tags=["worker"])
