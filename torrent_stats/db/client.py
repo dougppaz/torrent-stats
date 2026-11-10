@@ -50,6 +50,3 @@ class CouchDBClient:
         db = self.get_db()
         result = db.find({"selector": selector})
         return [dict(doc) for doc in result]
-
-
-couchdb_client = CouchDBClient()
