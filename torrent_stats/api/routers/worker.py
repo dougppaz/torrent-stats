@@ -16,6 +16,7 @@ from fastapi import (
 )
 from pydantic import BaseModel
 from torrent_stats.api.depends import (
+    StorageManagerDepends,
     TaskRepositoryDepends,
     TorrentRepositoryDepends,
     WorkerKeyRepositoryDepends,
@@ -26,7 +27,6 @@ from torrent_stats.controllers.worker import (
     TorrentUploadController,
     TrackerStatsController,
 )
-from torrent_stats.services.storage import storage_manager
 from torrent_stats.settings import worker_settings
 
 router = APIRouter(prefix="/worker", tags=["worker"])
@@ -65,6 +65,7 @@ def get_task_claim_controller(
 def get_torrent_upload_controller(
     torrent_repository: TorrentRepositoryDepends,
     task_repository: TaskRepositoryDepends,
+    storage_manager: StorageManagerDepends,
 ) -> TorrentUploadController:
     return TorrentUploadController(
         torrent_repository=torrent_repository,

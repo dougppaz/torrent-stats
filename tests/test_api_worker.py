@@ -5,6 +5,7 @@ from unittest.mock import MagicMock, patch
 
 from fastapi.testclient import TestClient
 from torrent_stats.api.depends import (
+    get_storage_manager,
     get_task_repository,
     get_torrent_repository,
     get_worker_key_repository,
@@ -184,24 +185,22 @@ def test_worker_upload_torrent_full():
     app.dependency_overrides[get_worker_key_repository] = lambda: mock_worker_key_repo
     app.dependency_overrides[get_task_repository] = lambda: mock_task_repo
     app.dependency_overrides[get_torrent_repository] = lambda: mock_torrent_repo
+    app.dependency_overrides[get_storage_manager] = lambda: mock_storage_manager
 
     try:
-        with patch(
-            "torrent_stats.api.routers.worker.storage_manager", mock_storage_manager
-        ):
-            response = client.post(
-                "/worker/torrents",
-                headers={"X-Worker-Key": "valid-key"},
-                data={
-                    "info_hash": "abc123",
-                    "name": "Test Torrent",
-                    "total_size": 2048,
-                    "storage_profile_key": "ftp",
-                    "storage_params": '{"custom": "val"}',
-                    "files": '[{"path": ["file.txt"], "length": 2048}]',
-                },
-                files={"torrent_file": ("test.torrent", b"d8:announce...")},
-            )
+        response = client.post(
+            "/worker/torrents",
+            headers={"X-Worker-Key": "valid-key"},
+            data={
+                "info_hash": "abc123",
+                "name": "Test Torrent",
+                "total_size": 2048,
+                "storage_profile_key": "ftp",
+                "storage_params": '{"custom": "val"}',
+                "files": '[{"path": ["file.txt"], "length": 2048}]',
+            },
+            files={"torrent_file": ("test.torrent", b"d8:announce...")},
+        )
     finally:
         app.dependency_overrides.clear()
 

@@ -1,9 +1,12 @@
 from __future__ import annotations
 
-from unittest.mock import MagicMock, patch
-
 from fastapi.testclient import TestClient
-from torrent_stats.api.depends import get_task_repository, get_torrent_repository
+from torrent_stats.api.depends import (
+    get_hit_counter_service,
+    get_storage_manager,
+    get_task_repository,
+    get_torrent_repository,
+)
 from torrent_stats.db.models import TaskDocument, TorrentMetadata
 from torrent_stats.main import app
 
@@ -11,7 +14,7 @@ client = TestClient(app)
 
 
 def test_get_torrent_endpoint_missing():
-    mock_repo = MagicMock()
+    mock_repo = MagicMock = __import__("unittest.mock").mock.MagicMock()
     mock_task_repo = MagicMock()
     mock_hit_counter = MagicMock()
     mock_storage = MagicMock()
@@ -29,18 +32,13 @@ def test_get_torrent_endpoint_missing():
 
     app.dependency_overrides[get_torrent_repository] = lambda: mock_repo
     app.dependency_overrides[get_task_repository] = lambda: mock_task_repo
+    app.dependency_overrides[get_hit_counter_service] = lambda: mock_hit_counter
+    app.dependency_overrides[get_storage_manager] = lambda: mock_storage
 
     try:
-        with (
-            patch(
-                "torrent_stats.api.routers.torrents.hit_counter_service",
-                mock_hit_counter,
-            ),
-            patch("torrent_stats.api.routers.torrents.storage_manager", mock_storage),
-        ):
-            response = client.get(
-                "/torrents/abcdef123456?trackers=udp://tracker.opentrackr.org:1337"
-            )
+        response = client.get(
+            "/torrents/abcdef123456?trackers=udp://tracker.opentrackr.org:1337"
+        )
     finally:
         app.dependency_overrides.clear()
 
@@ -54,10 +52,10 @@ def test_get_torrent_endpoint_missing():
 
 
 def test_get_torrent_endpoint_existing():
-    mock_repo = MagicMock()
-    mock_task_repo = MagicMock()
-    mock_hit_counter = MagicMock()
-    mock_storage = MagicMock()
+    mock_repo = __import__("unittest.mock").mock.MagicMock()
+    mock_task_repo = __import__("unittest.mock").mock.MagicMock()
+    mock_hit_counter = __import__("unittest.mock").mock.MagicMock()
+    mock_storage = __import__("unittest.mock").mock.MagicMock()
 
     mock_hit_counter.record_hit.return_value = (5, "2026-11-07T00:00:00Z")
     meta = TorrentMetadata(
@@ -81,16 +79,11 @@ def test_get_torrent_endpoint_existing():
 
     app.dependency_overrides[get_torrent_repository] = lambda: mock_repo
     app.dependency_overrides[get_task_repository] = lambda: mock_task_repo
+    app.dependency_overrides[get_hit_counter_service] = lambda: mock_hit_counter
+    app.dependency_overrides[get_storage_manager] = lambda: mock_storage
 
     try:
-        with (
-            patch(
-                "torrent_stats.api.routers.torrents.hit_counter_service",
-                mock_hit_counter,
-            ),
-            patch("torrent_stats.api.routers.torrents.storage_manager", mock_storage),
-        ):
-            response = client.get("/torrents/abcdef123456")
+        response = client.get("/torrents/abcdef123456")
     finally:
         app.dependency_overrides.clear()
 
