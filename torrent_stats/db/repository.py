@@ -8,17 +8,14 @@ from pydantic import BaseModel
 from torrent_stats.db.client import CouchDBClient
 from torrent_stats.db.crypto import hash_worker_key
 from torrent_stats.db.models import TaskDocument, TorrentMetadata, WorkerKey
-from torrent_stats.settings import couchdb_settings
 
 T = TypeVar("T", bound=BaseModel)
 logger = logging.getLogger(__name__)
 
 
 class BaseRepository(Generic[T]):
-    def __init__(
-        self, model_class: type[T], client: CouchDBClient | None = None
-    ) -> None:
-        self.client = client or CouchDBClient()
+    def __init__(self, model_class: type[T], client: CouchDBClient) -> None:
+        self.client = client
         self.model_class = model_class
 
     def get(self, doc_id: str) -> T | None:
@@ -47,7 +44,7 @@ class BaseRepository(Generic[T]):
 
 
 class TorrentMetadataRepository(BaseRepository[TorrentMetadata]):
-    def __init__(self, client: CouchDBClient | None = None) -> None:
+    def __init__(self, client: CouchDBClient) -> None:
         super().__init__(TorrentMetadata, client=client)
 
     def find_by_info_hash(self, info_hash: str) -> TorrentMetadata | None:
@@ -73,7 +70,7 @@ class TorrentMetadataRepository(BaseRepository[TorrentMetadata]):
 
 
 class WorkerKeyRepository(BaseRepository[WorkerKey]):
-    def __init__(self, client: CouchDBClient | None = None) -> None:
+    def __init__(self, client: CouchDBClient) -> None:
         super().__init__(WorkerKey, client=client)
 
     def save_key(self, raw_key: str, description: str = "") -> WorkerKey:
@@ -91,11 +88,8 @@ class WorkerKeyRepository(BaseRepository[WorkerKey]):
 
 
 class TaskRepository(BaseRepository[TaskDocument]):
-    def __init__(self, client: CouchDBClient | None = None) -> None:
-        task_client = client or CouchDBClient(
-            db_name=f"{couchdb_settings.couchdb_db_name}_tasks"
-        )
-        super().__init__(TaskDocument, client=task_client)
+    def __init__(self, client: CouchDBClient) -> None:
+        super().__init__(TaskDocument, client=client)
         self.ensure_view_exists()
 
     def ensure_view_exists(self) -> None:

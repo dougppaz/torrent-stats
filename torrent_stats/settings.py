@@ -18,6 +18,7 @@ class AppSettings(BaseSettings):
 class CouchDBSettings(BaseSettings):
     couchdb_url: str = "http://admin:admin@localhost:5984/"
     couchdb_db_name: str = "torrent_stats"
+    couchdb_tasks_db_name: str = "torrent_stats_tasks"
 
     model_config = {"env_file": ".env", "extra": "ignore"}
 

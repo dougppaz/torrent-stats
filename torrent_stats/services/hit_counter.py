@@ -3,9 +3,10 @@ from __future__ import annotations
 from datetime import UTC, datetime, timedelta
 
 import redis
+from torrent_stats.db.client import CouchDBClient
 from torrent_stats.db.models import TorrentMetadata
 from torrent_stats.db.repository import TorrentMetadataRepository
-from torrent_stats.settings import redis_settings
+from torrent_stats.settings import couchdb_settings, redis_settings
 
 
 class HitCounterService:
@@ -13,7 +14,8 @@ class HitCounterService:
         self.redis_client = redis.Redis.from_url(
             redis_settings.redis_url, decode_responses=True
         )
-        self.torrent_repo = TorrentMetadataRepository()
+        db_client = CouchDBClient(db_name=couchdb_settings.couchdb_db_name)
+        self.torrent_repo = TorrentMetadataRepository(client=db_client)
 
     def record_hit(self, info_hash: str) -> tuple[int, str]:
         now = datetime.now(UTC)

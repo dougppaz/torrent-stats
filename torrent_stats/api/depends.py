@@ -15,21 +15,35 @@ from torrent_stats.settings import couchdb_settings
 
 
 def get_couchdb_client() -> CouchDBClient:
-    return CouchDBClient()
+    return CouchDBClient(db_name=couchdb_settings.couchdb_db_name)
 
 
-def get_torrent_repository() -> TorrentMetadataRepository:
-    return TorrentMetadataRepository(client=CouchDBClient())
+def get_tasks_couchdb_client() -> CouchDBClient:
+    return CouchDBClient(db_name=couchdb_settings.couchdb_tasks_db_name)
 
 
-def get_task_repository() -> TaskRepository:
-    return TaskRepository(
-        client=CouchDBClient(db_name=f"{couchdb_settings.couchdb_db_name}_tasks")
-    )
+CouchDBClientDepends: TypeAlias = Annotated[CouchDBClient, Depends(get_couchdb_client)]
+TasksCouchDBClientDepends: TypeAlias = Annotated[
+    CouchDBClient, Depends(get_tasks_couchdb_client)
+]
 
 
-def get_worker_key_repository() -> WorkerKeyRepository:
-    return WorkerKeyRepository(client=CouchDBClient())
+def get_torrent_repository(
+    client: CouchDBClientDepends,
+) -> TorrentMetadataRepository:
+    return TorrentMetadataRepository(client=client)
+
+
+def get_task_repository(
+    client: TasksCouchDBClientDepends,
+) -> TaskRepository:
+    return TaskRepository(client=client)
+
+
+def get_worker_key_repository(
+    client: CouchDBClientDepends,
+) -> WorkerKeyRepository:
+    return WorkerKeyRepository(client=client)
 
 
 def get_hit_counter_service() -> HitCounterService:
@@ -55,4 +69,3 @@ HitCounterServiceDepends: TypeAlias = Annotated[
 StorageManagerDepends: TypeAlias = Annotated[
     StorageManager, Depends(get_storage_manager)
 ]
-CouchDBClientDepends: TypeAlias = Annotated[CouchDBClient, Depends(get_couchdb_client)]
