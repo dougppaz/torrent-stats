@@ -54,6 +54,3 @@ class HitCounterService:
             self.torrent_repo.save(new_torrent)
 
         return total_hits, last_hit_at
-
-
-hit_counter_service = HitCounterService()
