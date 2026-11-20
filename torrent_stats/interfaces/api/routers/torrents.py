@@ -3,14 +3,14 @@ from __future__ import annotations
 from typing import Annotated, TypeAlias
 
 from fastapi import APIRouter, Depends, Query, status
-from torrent_stats.api.depends import (
+from torrent_stats.controllers.torrents import TorrentController
+from torrent_stats.interfaces.api.depends import (
     HitCounterServiceDepends,
     StorageManagerDepends,
     TaskRepositoryDepends,
     TorrentRepositoryDepends,
 )
-from torrent_stats.api.schemas import TorrentDetailResponse
-from torrent_stats.controllers.torrents import TorrentController
+from torrent_stats.interfaces.api.schemas import TorrentDetailResponse
 
 router = APIRouter(prefix="/torrents", tags=["torrents"])
 

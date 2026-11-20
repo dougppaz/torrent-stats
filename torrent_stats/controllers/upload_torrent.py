@@ -6,9 +6,9 @@ import logging
 import pydantic
 from fastapi import UploadFile
 
-from torrent_stats.api.schemas import ActionSuccessResponse
 from torrent_stats.db.models import TaskDocument, TorrentFile, TorrentMetadata
 from torrent_stats.db.repository import TaskRepository, TorrentMetadataRepository
+from torrent_stats.interfaces.api.schemas import ActionSuccessResponse
 from torrent_stats.services.storage import StorageManager
 
 logger = logging.getLogger("torrent_stats.worker")

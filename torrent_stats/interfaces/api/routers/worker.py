@@ -15,16 +15,19 @@ from fastapi import (
     status,
 )
 from pydantic import BaseModel
-from torrent_stats.api.depends import (
+from torrent_stats.controllers.claim_task import TaskClaimController
+from torrent_stats.controllers.submit_tracker_stats import TrackerStatsController
+from torrent_stats.controllers.upload_torrent import TorrentUploadController
+from torrent_stats.interfaces.api.depends import (
     StorageManagerDepends,
     TaskRepositoryDepends,
     TorrentRepositoryDepends,
     WorkerKeyRepositoryDepends,
 )
-from torrent_stats.api.schemas import ActionSuccessResponse, TaskClaimResponse
-from torrent_stats.controllers.claim_task import TaskClaimController
-from torrent_stats.controllers.submit_tracker_stats import TrackerStatsController
-from torrent_stats.controllers.upload_torrent import TorrentUploadController
+from torrent_stats.interfaces.api.schemas import (
+    ActionSuccessResponse,
+    TaskClaimResponse,
+)
 from torrent_stats.settings import worker_settings
 
 router = APIRouter(prefix="/worker", tags=["worker"])

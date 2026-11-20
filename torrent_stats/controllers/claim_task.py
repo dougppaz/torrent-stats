@@ -3,9 +3,9 @@ from __future__ import annotations
 import logging
 from datetime import UTC, datetime
 
-from torrent_stats.api.schemas import TaskClaimResponse
 from torrent_stats.db.models import TaskDocument
 from torrent_stats.db.repository import TaskRepository
+from torrent_stats.interfaces.api.schemas import TaskClaimResponse
 from torrent_stats.settings import WorkerSettings
 
 logger = logging.getLogger("torrent_stats.worker")
