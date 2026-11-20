@@ -10,6 +10,7 @@ from torrent_stats.interfaces.api.schemas import (
 )
 from torrent_stats.services.hit_counter import HitCounterService
 from torrent_stats.services.storage import StorageManager
+from torrent_stats.settings import trackers_settings
 
 
 class TorrentController:
@@ -46,9 +47,12 @@ class TorrentController:
                 )
             )
 
-        if trackers:
+        target_trackers = (
+            trackers if trackers is not None else trackers_settings.default_trackers
+        )
+        if target_trackers:
             existing_tracker_urls = {ts.tracker_url for ts in torrent.tracker_stats}
-            for tr in trackers:
+            for tr in target_trackers:
                 if tr not in existing_tracker_urls:
                     torrent.tracker_stats.append(
                         TrackerStat(
