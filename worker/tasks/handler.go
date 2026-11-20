@@ -6,4 +6,5 @@ type Handler interface {
 
 type FailClient interface {
 	FailTask(taskID, errorMessage string) error
+	SubmitStats(infoHash, trackerURL string, success bool, seeds, peers int) error
 }

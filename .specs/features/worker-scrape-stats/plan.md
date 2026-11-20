@@ -1,6 +1,6 @@
 # Worker Scrape Stats & Info Hash Normalization
 
-**Approved**: 2026-11-09 - user: "o torf é utilizado para extrair o info hash de um magnet link, no nosso caso nao precisamos extrair de um magnet link, o usuario ja vai mandar o info hash. então nao sera necessario utilizar o torf nesse caso. considere o trecho do codigo partindo da linha 20. ate a 32."
+**Approved**: 2026-11-09 - user: "ok"
 
 > Build this with **tlc-implement**. Every criterion becomes a check with a proof; nothing under the open questions is settled while building.
 

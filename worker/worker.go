@@ -62,7 +62,11 @@ func (w *Worker) executeTaskStub(task *Task) {
 	case "scrape_torrent":
 		_ = scrapeTorrentHandler.Execute(task.TaskID, task.InfoHash)
 	case "scrape_stats":
-		_ = scrapeStatsHandler.Execute(task.TaskID, task.InfoHash)
+		trackerURL := ""
+		if task.TrackerURL != nil {
+			trackerURL = *task.TrackerURL
+		}
+		_ = scrapeStatsHandler.ExecuteWithTracker(task.TaskID, task.InfoHash, trackerURL)
 	default:
 		errMsg := fmt.Sprintf("unknown task type: %s", task.TaskType)
 		log.Printf("[ERROR] %s for task_id=%s", errMsg, task.TaskID)
