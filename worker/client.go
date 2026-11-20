@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -14,6 +15,10 @@ type Task struct {
 	TrackerURL     *string `json:"tracker_url"`
 	UpdatedAt      *string `json:"updated_at"`
 	LeaseExpiresAt string  `json:"lease_expires_at"`
+}
+
+type TaskFailureRequest struct {
+	ErrorMessage string `json:"error_message"`
 }
 
 type Client struct {
@@ -58,4 +63,31 @@ func (c *Client) ClaimTask() (*Task, bool, error) {
 	}
 
 	return &task, true, nil
+}
+
+func (c *Client) FailTask(taskID, errorMessage string) error {
+	reqURL := fmt.Sprintf("%s/worker/tasks/%s/fail", c.APIURL, taskID)
+	body := TaskFailureRequest{ErrorMessage: errorMessage}
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(body); err != nil {
+		return err
+	}
+
+	req, err := http.NewRequest(http.MethodPost, reqURL, &buf)
+	if err != nil {
+		return err
+	}
+	req.Header.Set("X-Worker-Key", c.WorkerKey)
+	req.Header.Set("Content-Type", "application/json")
+
+	resp, err := c.HTTPClient.Do(req)
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return fmt.Errorf("unexpected status code for fail report: %d", resp.StatusCode)
+	}
+	return nil
 }

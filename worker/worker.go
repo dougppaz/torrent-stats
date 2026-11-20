@@ -2,8 +2,11 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"log"
 	"time"
+
+	"github.com/betorbr/torrent-stats-worker/tasks"
 )
 
 type Worker struct {
@@ -52,5 +55,17 @@ func (w *Worker) pollAndExecute() {
 }
 
 func (w *Worker) executeTaskStub(task *Task) {
-	log.Printf("[ERROR] Task execution not yet implemented for task_type=%s, task_id=%s, info_hash=%s", task.TaskType, task.TaskID, task.InfoHash)
+	scrapeTorrentHandler := tasks.NewScrapeTorrentHandler(w.client)
+	scrapeStatsHandler := tasks.NewScrapeStatsHandler(w.client)
+
+	switch task.TaskType {
+	case "scrape_torrent":
+		_ = scrapeTorrentHandler.Execute(task.TaskID, task.InfoHash)
+	case "scrape_stats":
+		_ = scrapeStatsHandler.Execute(task.TaskID, task.InfoHash)
+	default:
+		errMsg := fmt.Sprintf("unknown task type: %s", task.TaskType)
+		log.Printf("[ERROR] %s for task_id=%s", errMsg, task.TaskID)
+		_ = w.client.FailTask(task.TaskID, errMsg)
+	}
 }
