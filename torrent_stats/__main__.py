@@ -4,8 +4,10 @@ import argparse
 import secrets
 import sys
 
+from torrent_stats.db.client import CouchDBClient
 from torrent_stats.db.models import WorkerKey
 from torrent_stats.db.repository import WorkerKeyRepository
+from torrent_stats.settings import couchdb_settings
 
 
 def main() -> int:
@@ -32,7 +34,8 @@ def main() -> int:
     delete_parser.add_argument("id", help="Worker key ID or hash")
 
     args = parser.parse_args()
-    repo = WorkerKeyRepository()
+    client = CouchDBClient(db_name=couchdb_settings.couchdb_db_name)
+    repo = WorkerKeyRepository(client=client)
 
     if args.group == "workers":
         if args.action == "create":

@@ -1,7 +1,15 @@
+from __future__ import annotations
+
 from datetime import UTC, datetime, timedelta
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 from fastapi.testclient import TestClient
+from torrent_stats.api.depends import (
+    get_storage_manager,
+    get_task_repository,
+    get_torrent_repository,
+    get_worker_key_repository,
+)
 from torrent_stats.db.models import (
     TaskDocument,
     TorrentMetadata,
@@ -13,46 +21,63 @@ from torrent_stats.main import app
 client = TestClient(app)
 
 
-@patch("torrent_stats.api.routers.worker.worker_key_repo")
-def test_worker_unauthorized(mock_worker_key_repo):
+def test_worker_unauthorized():
+    mock_worker_key_repo = MagicMock()
     mock_worker_key_repo.find_by_key_hash.return_value = None
+    app.dependency_overrides[get_worker_key_repository] = lambda: mock_worker_key_repo
 
-    response = client.post(
-        "/worker/tasks/claim", headers={"X-Worker-Key": "invalid-key"}
-    )
-    assert response.status_code == 401
+    try:
+        response = client.post(
+            "/worker/tasks/claim", headers={"X-Worker-Key": "invalid-key"}
+        )
+        assert response.status_code == 401
 
-    response2 = client.post("/worker/tasks/claim")
-    assert response2.status_code == 401
+        response2 = client.post("/worker/tasks/claim")
+        assert response2.status_code == 401
+    finally:
+        app.dependency_overrides.clear()
 
 
 @patch("torrent_stats.api.routers.worker.worker_settings")
-@patch("torrent_stats.api.routers.worker.task_repo")
-def test_worker_allow_any_key(mock_task_repo, mock_worker_settings):
+def test_worker_allow_any_key(mock_worker_settings):
+    mock_task_repo = MagicMock()
     mock_worker_settings.worker_allow_any_key = True
     mock_task_repo.find_claimable.return_value = []
 
-    response = client.post(
-        "/worker/tasks/claim", headers={"X-Worker-Key": "any-random-key"}
-    )
-    assert response.status_code == 204
+    app.dependency_overrides[get_task_repository] = lambda: mock_task_repo
+
+    try:
+        response = client.post(
+            "/worker/tasks/claim", headers={"X-Worker-Key": "any-random-key"}
+        )
+        assert response.status_code == 204
+    finally:
+        app.dependency_overrides.clear()
 
 
-@patch("torrent_stats.api.routers.worker.worker_key_repo")
-@patch("torrent_stats.api.routers.worker.task_repo")
-def test_worker_claim_task_no_content(mock_task_repo, mock_worker_key_repo):
+def test_worker_claim_task_no_content():
+    mock_worker_key_repo = MagicMock()
+    mock_task_repo = MagicMock()
     mock_worker_key_repo.find_by_key_hash.return_value = WorkerKey(
         _id="hash1", key_hash="hash1"
     )
     mock_task_repo.find_claimable.return_value = []
 
-    response = client.post("/worker/tasks/claim", headers={"X-Worker-Key": "valid-key"})
-    assert response.status_code == 204
+    app.dependency_overrides[get_worker_key_repository] = lambda: mock_worker_key_repo
+    app.dependency_overrides[get_task_repository] = lambda: mock_task_repo
+
+    try:
+        response = client.post(
+            "/worker/tasks/claim", headers={"X-Worker-Key": "valid-key"}
+        )
+        assert response.status_code == 204
+    finally:
+        app.dependency_overrides.clear()
 
 
-@patch("torrent_stats.api.routers.worker.worker_key_repo")
-@patch("torrent_stats.api.routers.worker.task_repo")
-def test_worker_claim_task_success(mock_task_repo, mock_worker_key_repo):
+def test_worker_claim_task_success():
+    mock_worker_key_repo = MagicMock()
+    mock_task_repo = MagicMock()
     mock_worker_key_repo.find_by_key_hash.return_value = WorkerKey(
         _id="hash1", key_hash="hash1"
     )
@@ -64,7 +89,16 @@ def test_worker_claim_task_success(mock_task_repo, mock_worker_key_repo):
     )
     mock_task_repo.find_claimable.return_value = [task]
 
-    response = client.post("/worker/tasks/claim", headers={"X-Worker-Key": "valid-key"})
+    app.dependency_overrides[get_worker_key_repository] = lambda: mock_worker_key_repo
+    app.dependency_overrides[get_task_repository] = lambda: mock_task_repo
+
+    try:
+        response = client.post(
+            "/worker/tasks/claim", headers={"X-Worker-Key": "valid-key"}
+        )
+    finally:
+        app.dependency_overrides.clear()
+
     assert response.status_code == 200
     data = response.json()
     assert data["task_id"] == "task-1"
@@ -73,12 +107,11 @@ def test_worker_claim_task_success(mock_task_repo, mock_worker_key_repo):
     assert "lease_expires_at" in data
 
 
-@patch("torrent_stats.api.routers.worker.worker_key_repo")
-@patch("torrent_stats.api.routers.worker.task_repo")
-@patch("torrent_stats.api.routers.worker.torrent_repo")
-def test_worker_claim_task_expired_lease_and_cooldowns(
-    mock_torrent_repo, mock_task_repo, mock_worker_key_repo
-):
+def test_worker_claim_task_expired_lease_and_cooldowns():
+    mock_worker_key_repo = MagicMock()
+    mock_task_repo = MagicMock()
+    mock_torrent_repo = MagicMock()
+
     mock_worker_key_repo.find_by_key_hash.return_value = WorkerKey(
         _id="hash1", key_hash="hash1"
     )
@@ -109,19 +142,28 @@ def test_worker_claim_task_expired_lease_and_cooldowns(
     )
     mock_task_repo.find_claimable.return_value = [task_expired, task_fresh_stats]
 
-    response = client.post("/worker/tasks/claim", headers={"X-Worker-Key": "valid-key"})
+    app.dependency_overrides[get_worker_key_repository] = lambda: mock_worker_key_repo
+    app.dependency_overrides[get_task_repository] = lambda: mock_task_repo
+    app.dependency_overrides[get_torrent_repository] = lambda: mock_torrent_repo
+
+    try:
+        response = client.post(
+            "/worker/tasks/claim", headers={"X-Worker-Key": "valid-key"}
+        )
+    finally:
+        app.dependency_overrides.clear()
+
     assert response.status_code == 200
     data = response.json()
     assert data["task_id"] == "task-expired"
 
 
-@patch("torrent_stats.api.routers.worker.worker_key_repo")
-@patch("torrent_stats.api.routers.worker.task_repo")
-@patch("torrent_stats.api.routers.worker.torrent_repo")
-@patch("torrent_stats.api.routers.worker.storage_manager")
-def test_worker_upload_torrent_full(
-    mock_storage_manager, mock_torrent_repo, mock_task_repo, mock_worker_key_repo
-):
+def test_worker_upload_torrent_full():
+    mock_worker_key_repo = MagicMock()
+    mock_task_repo = MagicMock()
+    mock_torrent_repo = MagicMock()
+    mock_storage_manager = MagicMock()
+
     mock_worker_key_repo.find_by_key_hash.return_value = WorkerKey(
         _id="hash1", key_hash="hash1"
     )
@@ -140,31 +182,39 @@ def test_worker_upload_torrent_full(
         )
     ]
 
-    response = client.post(
-        "/worker/torrents",
-        headers={"X-Worker-Key": "valid-key"},
-        data={
-            "info_hash": "abc123",
-            "name": "Test Torrent",
-            "total_size": 2048,
-            "storage_profile_key": "ftp",
-            "storage_params": '{"custom": "val"}',
-            "files": '[{"path": ["file.txt"], "length": 2048}]',
-        },
-        files={"torrent_file": ("test.torrent", b"d8:announce...")},
-    )
+    app.dependency_overrides[get_worker_key_repository] = lambda: mock_worker_key_repo
+    app.dependency_overrides[get_task_repository] = lambda: mock_task_repo
+    app.dependency_overrides[get_torrent_repository] = lambda: mock_torrent_repo
+    app.dependency_overrides[get_storage_manager] = lambda: mock_storage_manager
+
+    try:
+        response = client.post(
+            "/worker/torrents",
+            headers={"X-Worker-Key": "valid-key"},
+            data={
+                "info_hash": "abc123",
+                "name": "Test Torrent",
+                "total_size": 2048,
+                "storage_profile_key": "ftp",
+                "storage_params": '{"custom": "val"}',
+                "files": '[{"path": ["file.txt"], "length": 2048}]',
+            },
+            files={"torrent_file": ("test.torrent", b"d8:announce...")},
+        )
+    finally:
+        app.dependency_overrides.clear()
+
     assert response.status_code == 201
     data = response.json()
     assert data["status"] == "success"
     assert data["info_hash"] == "abc123"
 
 
-@patch("torrent_stats.api.routers.worker.worker_key_repo")
-@patch("torrent_stats.api.routers.worker.task_repo")
-@patch("torrent_stats.api.routers.worker.torrent_repo")
-def test_worker_submit_tracker_stats_and_prune(
-    mock_torrent_repo, mock_task_repo, mock_worker_key_repo
-):
+def test_worker_submit_tracker_stats_and_prune():
+    mock_worker_key_repo = MagicMock()
+    mock_task_repo = MagicMock()
+    mock_torrent_repo = MagicMock()
+
     mock_worker_key_repo.find_by_key_hash.return_value = WorkerKey(
         _id="hash1", key_hash="hash1"
     )
@@ -185,45 +235,52 @@ def test_worker_submit_tracker_stats_and_prune(
         )
     ]
 
-    # Submit failure (3rd consecutive failure -> should prune)
-    response = client.post(
-        "/worker/torrents/abc123/stats",
-        headers={"X-Worker-Key": "valid-key"},
-        json={"tracker_url": "udp://tracker.test:1337", "success": False},
-    )
-    assert response.status_code == 200
-    assert len(torrent.tracker_stats) == 0
+    app.dependency_overrides[get_worker_key_repository] = lambda: mock_worker_key_repo
+    app.dependency_overrides[get_task_repository] = lambda: mock_task_repo
+    app.dependency_overrides[get_torrent_repository] = lambda: mock_torrent_repo
 
-    # Submit success for new tracker
-    response2 = client.post(
-        "/worker/torrents/abc123/stats",
-        headers={"X-Worker-Key": "valid-key"},
-        json={
-            "tracker_url": "udp://tracker.new:1337",
-            "success": True,
-            "seeds": 10,
-            "peers": 5,
-        },
-    )
-    assert response2.status_code == 200
+    try:
+        # Submit failure (3rd consecutive failure -> should prune)
+        response = client.post(
+            "/worker/torrents/abc123/stats",
+            headers={"X-Worker-Key": "valid-key"},
+            json={"tracker_url": "udp://tracker.test:1337", "success": False},
+        )
+        assert response.status_code == 200
+        assert len(torrent.tracker_stats) == 0
 
-    # Submit success for existing tracker
-    response3 = client.post(
-        "/worker/torrents/abc123/stats",
-        headers={"X-Worker-Key": "valid-key"},
-        json={
-            "tracker_url": "udp://tracker.new:1337",
-            "success": True,
-            "seeds": 15,
-            "peers": 8,
-        },
-    )
-    assert response3.status_code == 200
+        # Submit success for new tracker
+        response2 = client.post(
+            "/worker/torrents/abc123/stats",
+            headers={"X-Worker-Key": "valid-key"},
+            json={
+                "tracker_url": "udp://tracker.new:1337",
+                "success": True,
+                "seeds": 10,
+                "peers": 5,
+            },
+        )
+        assert response2.status_code == 200
 
-    # Submit failure for new tracker
-    response4 = client.post(
-        "/worker/torrents/abc123/stats",
-        headers={"X-Worker-Key": "valid-key"},
-        json={"tracker_url": "udp://tracker.fail:1337", "success": False},
-    )
-    assert response4.status_code == 200
+        # Submit success for existing tracker
+        response3 = client.post(
+            "/worker/torrents/abc123/stats",
+            headers={"X-Worker-Key": "valid-key"},
+            json={
+                "tracker_url": "udp://tracker.new:1337",
+                "success": True,
+                "seeds": 15,
+                "peers": 8,
+            },
+        )
+        assert response3.status_code == 200
+
+        # Submit failure for new tracker
+        response4 = client.post(
+            "/worker/torrents/abc123/stats",
+            headers={"X-Worker-Key": "valid-key"},
+            json={"tracker_url": "udp://tracker.fail:1337", "success": False},
+        )
+        assert response4.status_code == 200
+    finally:
+        app.dependency_overrides.clear()

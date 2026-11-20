@@ -1,4 +1,6 @@
-from unittest.mock import MagicMock, patch
+from __future__ import annotations
+
+from unittest.mock import MagicMock
 
 from torrent_stats.db.repository import (
     TaskRepository,
@@ -7,8 +9,8 @@ from torrent_stats.db.repository import (
 )
 
 
-@patch("torrent_stats.db.repository.couchdb_client")
-def test_torrent_metadata_repository(mock_client):
+def test_torrent_metadata_repository():
+    mock_client = MagicMock()
     mock_client.get_doc.return_value = {
         "_id": "abc123hash",
         "info_hash": "abc123hash",
@@ -16,7 +18,7 @@ def test_torrent_metadata_repository(mock_client):
         "total_size": 2048,
         "total_hits": 5,
     }
-    repo = TorrentMetadataRepository()
+    repo = TorrentMetadataRepository(client=mock_client)
     result = repo.find_by_info_hash("abc123hash")
     assert result is not None
     assert result.name == "Mock Torrent"
@@ -31,9 +33,9 @@ def test_torrent_metadata_repository(mock_client):
     assert saved.info_hash == "abc123hash"
 
 
-@patch("torrent_stats.db.repository.couchdb_client")
-def test_torrent_metadata_get_or_create(mock_client):
-    repo = TorrentMetadataRepository()
+def test_torrent_metadata_get_or_create():
+    mock_client = MagicMock()
+    repo = TorrentMetadataRepository(client=mock_client)
     # Case 1: exists
     mock_client.get_doc.return_value = {
         "_id": "abc123hash",
@@ -52,9 +54,9 @@ def test_torrent_metadata_get_or_create(mock_client):
     assert torrent.info_hash == "newhash"
 
 
-@patch("torrent_stats.db.repository.couchdb_client")
-def test_worker_key_repository(mock_client):
-    repo = WorkerKeyRepository()
+def test_worker_key_repository():
+    mock_client = MagicMock()
+    repo = WorkerKeyRepository(client=mock_client)
     mock_client.save_doc.return_value = {"id": "hash", "rev": "1-rev"}
     wk = repo.save_key("raw-key", "worker 1")
     assert wk.key_hash is not None
@@ -71,11 +73,9 @@ def test_worker_key_repository(mock_client):
     assert repo.find_by_key_hash("unknown-key") is None
 
 
-@patch("torrent_stats.db.repository.CouchDBClient")
-def test_task_repository_find_claimable(mock_db_client_class):
+def test_task_repository_find_claimable():
     mock_client = MagicMock()
     mock_db = MagicMock()
-    mock_db_client_class.return_value = mock_client
     mock_client.get_db.return_value = mock_db
 
     row1 = MagicMock()
@@ -90,25 +90,23 @@ def test_task_repository_find_claimable(mock_db_client_class):
 
     mock_db.view.side_effect = [[row1], [row2], []]
 
-    repo = TaskRepository()
+    repo = TaskRepository(client=mock_client)
     tasks = repo.find_claimable()
     assert len(tasks) == 2
     assert tasks[0].id == "t1"
     assert tasks[1].id == "t2"
 
 
-@patch("torrent_stats.db.repository.CouchDBClient")
-def test_task_repository_find_claimable_fallback(mock_db_client_class):
+def test_task_repository_find_claimable_fallback():
     mock_client = MagicMock()
     mock_db = MagicMock()
-    mock_db_client_class.return_value = mock_client
     mock_client.get_db.return_value = mock_db
 
     mock_db.view.side_effect = Exception("view error")
     mock_db.__iter__.return_value = ["t1"]
     mock_db.get.return_value = {"_id": "t1", "info_hash": "abc", "status": "pending"}
 
-    repo = TaskRepository()
+    repo = TaskRepository(client=mock_client)
     tasks = repo.find_claimable()
     assert len(tasks) == 1
     assert tasks[0].id == "t1"
