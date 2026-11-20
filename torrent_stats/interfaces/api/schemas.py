@@ -23,6 +23,7 @@ class TaskResponse(BaseModel):
     tracker_url: str | None = None
     updated_at: str | None = None
     created_at: str | None = None
+    error_message: str | None = None
 
 
 class TorrentDetailResponse(BaseModel):

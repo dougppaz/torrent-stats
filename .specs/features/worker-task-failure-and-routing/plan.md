@@ -51,6 +51,7 @@ New: API task failure endpoint and Go worker task routing modules. One-way const
 | Route | In | Out | Status | Who |
 | --- | --- | --- | --- | --- |
 | `POST /worker/tasks/{task_id}/fail` | Header `X-Worker-Key`, JSON body `{"error_message": "..."}` | success confirmation | `200 OK`, `400 Bad Request`, `401 Unauthorized`, `404 Not Found` | Remote Workers |
+| `GET /torrents/:hash` | `hash` (path) | metadata, tasks (including `error_message` per task) | `200 OK`, `422 Unprocessable Entity` | Anyone |
 
 ## Landing
 
@@ -71,6 +72,7 @@ As a remote worker, I want to notify the API when a task fails via `POST /worker
 1. WHEN a remote worker sends `POST /worker/tasks/{task_id}/fail` with a valid `X-Worker-Key` header and JSON body `{"error_message": "not implemented"}` THEN the API SHALL update the task state to failed and return `200 OK`.
 2. IF a request to `POST /worker/tasks/{task_id}/fail` lacks a valid `X-Worker-Key` header THEN the system SHALL return `401 Unauthorized`.
 3. IF `task_id` does not exist in CouchDB THEN the system SHALL return `404 Not Found`.
+4. WHEN a client calls `GET /torrents/{hash}` THEN the system SHALL return tasks list including the `error_message` for each task.
 
 ### S2: Go Worker Task Routing & Failure Reporting (P2)
 
