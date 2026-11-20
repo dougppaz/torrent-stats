@@ -28,7 +28,7 @@ Resolving info hashes into .torrent files, detailed file trees, and live peer/se
 
 2. Run the API server:
    ```bash
-   poetry run uvicorn torrent_stats.main:app --reload --port 8000
+   poetry run uvicorn torrent_stats.interfaces.api.main:app --reload --port 8000
    ```
 
 3. Access the health check:

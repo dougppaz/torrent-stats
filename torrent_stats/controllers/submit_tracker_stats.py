@@ -3,9 +3,9 @@ from __future__ import annotations
 import logging
 from datetime import UTC, datetime
 
-from torrent_stats.api.schemas import ActionSuccessResponse
 from torrent_stats.db.models import TorrentMetadata, TrackerStat
 from torrent_stats.db.repository import TaskRepository, TorrentMetadataRepository
+from torrent_stats.interfaces.api.schemas import ActionSuccessResponse
 
 logger = logging.getLogger("torrent_stats.worker")
 

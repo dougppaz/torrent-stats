@@ -4,19 +4,19 @@ from datetime import UTC, datetime, timedelta
 from unittest.mock import MagicMock, patch
 
 from fastapi.testclient import TestClient
-from torrent_stats.api.depends import (
-    get_storage_manager,
-    get_task_repository,
-    get_torrent_repository,
-    get_worker_key_repository,
-)
 from torrent_stats.db.models import (
     TaskDocument,
     TorrentMetadata,
     TrackerStat,
     WorkerKey,
 )
-from torrent_stats.main import app
+from torrent_stats.interfaces.api.depends import (
+    get_storage_manager,
+    get_task_repository,
+    get_torrent_repository,
+    get_worker_key_repository,
+)
+from torrent_stats.interfaces.api.main import app
 
 client = TestClient(app)
 
@@ -38,7 +38,7 @@ def test_worker_unauthorized():
         app.dependency_overrides.clear()
 
 
-@patch("torrent_stats.api.routers.worker.worker_settings")
+@patch("torrent_stats.interfaces.api.routers.worker.worker_settings")
 def test_worker_allow_any_key(mock_worker_settings):
     mock_task_repo = MagicMock()
     mock_worker_settings.worker_allow_any_key = True

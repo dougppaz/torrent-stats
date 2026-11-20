@@ -1,5 +1,5 @@
 from fastapi.testclient import TestClient
-from torrent_stats.main import app
+from torrent_stats.interfaces.api.main import app
 
 client = TestClient(app)
 

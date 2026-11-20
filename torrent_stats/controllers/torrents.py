@@ -1,13 +1,13 @@
 from __future__ import annotations
 
-from torrent_stats.api.schemas import (
+from torrent_stats.db.models import TaskDocument, TrackerStat
+from torrent_stats.db.repository import TaskRepository, TorrentMetadataRepository
+from torrent_stats.interfaces.api.schemas import (
     TaskResponse,
     TorrentDetailResponse,
     TorrentFileResponse,
     TrackerStatResponse,
 )
-from torrent_stats.db.models import TaskDocument, TrackerStat
-from torrent_stats.db.repository import TaskRepository, TorrentMetadataRepository
 from torrent_stats.services.hit_counter import HitCounterService
 from torrent_stats.services.storage import StorageManager
 

@@ -1,14 +1,14 @@
 from __future__ import annotations
 
 from fastapi.testclient import TestClient
-from torrent_stats.api.depends import (
+from torrent_stats.db.models import TaskDocument, TorrentMetadata
+from torrent_stats.interfaces.api.depends import (
     get_hit_counter_service,
     get_storage_manager,
     get_task_repository,
     get_torrent_repository,
 )
-from torrent_stats.db.models import TaskDocument, TorrentMetadata
-from torrent_stats.main import app
+from torrent_stats.interfaces.api.main import app
 
 client = TestClient(app)
 

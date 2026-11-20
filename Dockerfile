@@ -23,4 +23,4 @@ COPY torrent_stats/ torrent_stats/
 
 EXPOSE 8000
 
-CMD ["uvicorn", "torrent_stats.main:app", "--host", "0.0.0.0", "--port", "8000"]
+CMD ["uvicorn", "torrent_stats.interfaces.api.main:app", "--host", "0.0.0.0", "--port", "8000"]

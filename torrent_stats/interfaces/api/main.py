@@ -3,9 +3,8 @@ from __future__ import annotations
 import logging
 
 from fastapi import FastAPI
-
-from torrent_stats.api.routers.torrents import router as torrents_router
-from torrent_stats.api.routers.worker import router as worker_router
+from torrent_stats.interfaces.api.routers.torrents import router as torrents_router
+from torrent_stats.interfaces.api.routers.worker import router as worker_router
 from torrent_stats.settings import app_settings
 
 logging.basicConfig(
