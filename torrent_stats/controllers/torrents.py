@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from torrent_stats.db.models import TaskDocument, TrackerStat
 from torrent_stats.db.repository import TaskRepository, TorrentMetadataRepository
-from torrent_stats.interfaces.api.schemas import (
+from torrent_stats.schemas import (
     TaskResponse,
     TorrentDetailResponse,
     TorrentFileResponse,
