@@ -128,3 +128,41 @@ def test_get_torrent_with_default_trackers(mock_trackers_settings):
     data = response.json()
     assert len(data["tracker_stats"]) == 1
     assert data["tracker_stats"][0]["tracker_url"] == "udp://default.tracker:1337"
+
+
+def test_get_torrent_task_error_message():
+    mock_repo = __import__("unittest.mock").mock.MagicMock()
+    mock_task_repo = __import__("unittest.mock").mock.MagicMock()
+    mock_hit_counter = __import__("unittest.mock").mock.MagicMock()
+    mock_storage = __import__("unittest.mock").mock.MagicMock()
+
+    mock_hit_counter.record_hit.return_value = (1, "2026-11-07T00:00:00Z")
+    meta = TorrentMetadata(info_hash="abcdef123456", total_hits=1)
+    mock_repo.get_or_create.return_value = (meta, False)
+    mock_task_repo.find_by_info_hash.return_value = [
+        TaskDocument(
+            info_hash="abcdef123456",
+            task_type="scrape_torrent",
+            status="failed",
+            error_message="scrape_torrent task execution not yet implemented",
+        )
+    ]
+
+    app.dependency_overrides[get_torrent_repository] = lambda: mock_repo
+    app.dependency_overrides[get_task_repository] = lambda: mock_task_repo
+    app.dependency_overrides[get_hit_counter_service] = lambda: mock_hit_counter
+    app.dependency_overrides[get_storage_manager] = lambda: mock_storage
+
+    try:
+        response = client.get("/torrents/abcdef123456")
+    finally:
+        app.dependency_overrides.clear()
+
+    assert response.status_code == 200
+    data = response.json()
+    assert len(data["tasks"]) == 1
+    assert data["tasks"][0]["status"] == "failed"
+    assert (
+        data["tasks"][0]["error_message"]
+        == "scrape_torrent task execution not yet implemented"
+    )

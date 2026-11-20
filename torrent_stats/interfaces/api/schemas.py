@@ -23,6 +23,7 @@ class TaskResponse(BaseModel):
     tracker_url: str | None = None
     updated_at: str | None = None
     created_at: str | None = None
+    error_message: str | None = None
 
 
 class TorrentDetailResponse(BaseModel):
@@ -46,6 +47,10 @@ class TaskClaimResponse(BaseModel):
     tracker_url: str | None = None
     updated_at: str | None = None
     lease_expires_at: str
+
+
+class TaskFailureRequest(BaseModel):
+    error_message: str
 
 
 class ActionSuccessResponse(BaseModel):

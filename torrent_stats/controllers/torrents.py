@@ -119,6 +119,7 @@ class TorrentController:
                     tracker_url=t.tracker_url,
                     updated_at=t.tracker_updated_at,
                     created_at=t.created_at,
+                    error_message=t.error_message,
                 )
                 for t in active_tasks
             ],
