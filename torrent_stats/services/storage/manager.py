@@ -71,6 +71,3 @@ class StorageManager:
             return handler.get_download_url(storage_params)
         except (ValueError, KeyError):
             return None
-
-
-storage_manager = StorageManager()
