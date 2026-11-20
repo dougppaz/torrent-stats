@@ -1,6 +1,10 @@
 from __future__ import annotations
 
-from torrent_stats.schemas.common import ActionSuccessResponse
+from torrent_stats.schemas.common import (
+    ActionSuccessResponse,
+    ValidatedInfoHash,
+    normalize_info_hash,
+)
 from torrent_stats.schemas.task import (
     TaskClaimResponse,
     TaskFailureRequest,
@@ -20,4 +24,6 @@ __all__ = [
     "TorrentDetailResponse",
     "TorrentFileResponse",
     "TrackerStatResponse",
+    "ValidatedInfoHash",
+    "normalize_info_hash",
 ]

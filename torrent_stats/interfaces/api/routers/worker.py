@@ -29,6 +29,7 @@ from torrent_stats.schemas import (
     ActionSuccessResponse,
     TaskClaimResponse,
     TaskFailureRequest,
+    ValidatedInfoHash,
 )
 from torrent_stats.settings import worker_settings
 
@@ -141,7 +142,7 @@ def fail_task(
     response_model=ActionSuccessResponse,
 )
 async def upload_torrent(
-    info_hash: Annotated[str, Form()],
+    info_hash: Annotated[ValidatedInfoHash, Form()],
     name: Annotated[str, Form()],
     total_size: Annotated[int, Form()],
     controller: TorrentUploadControllerDepends,
@@ -175,7 +176,7 @@ class TrackerStatsSubmit(BaseModel):
     response_model=ActionSuccessResponse,
 )
 def submit_tracker_stats(
-    hash: str,
+    hash: ValidatedInfoHash,
     payload: TrackerStatsSubmit,
     controller: TrackerStatsControllerDepends,
     _: str = Depends(verify_worker_key),

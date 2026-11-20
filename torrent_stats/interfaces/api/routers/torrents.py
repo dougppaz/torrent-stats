@@ -10,7 +10,7 @@ from torrent_stats.interfaces.api.depends import (
     TaskRepositoryDepends,
     TorrentRepositoryDepends,
 )
-from torrent_stats.schemas import TorrentDetailResponse
+from torrent_stats.schemas import TorrentDetailResponse, ValidatedInfoHash
 
 router = APIRouter(prefix="/torrents", tags=["torrents"])
 
@@ -38,7 +38,7 @@ TorrentControllerDepends: TypeAlias = Annotated[
     "/{hash}", status_code=status.HTTP_200_OK, response_model=TorrentDetailResponse
 )
 def get_torrent(
-    hash: str,
+    hash: ValidatedInfoHash,
     controller: TorrentControllerDepends,
     trackers: Annotated[
         list[str] | None, Query(description="Custom tracker URLs")
