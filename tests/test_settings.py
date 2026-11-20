@@ -30,6 +30,27 @@ def test_settings_initialization():
 
 @patch.dict(
     os.environ,
+    {"DEFAULT_TRACKERS": "udp://tracker1.com:1337, udp://tracker2.com:1337"},
+)
+def test_trackers_settings_comma_separated():
+    ts = TrackersSettings()
+    assert ts.default_trackers == [
+        "udp://tracker1.com:1337",
+        "udp://tracker2.com:1337",
+    ]
+
+
+@patch.dict(
+    os.environ,
+    {"DEFAULT_TRACKERS": '["udp://json1.com:1337", "udp://json2.com:1337"]'},
+)
+def test_trackers_settings_json():
+    ts = TrackersSettings()
+    assert ts.default_trackers == ["udp://json1.com:1337", "udp://json2.com:1337"]
+
+
+@patch.dict(
+    os.environ,
     {
         "STORAGE_PROFILE_FTP_TYPE": "ftp",
         "STORAGE_PROFILE_FTP_URL_TEMPLATE": "https://download.example.com/{file_path}",

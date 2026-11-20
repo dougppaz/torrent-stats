@@ -3,7 +3,7 @@ from __future__ import annotations
 import os
 from typing import Any
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 from pydantic_settings import BaseSettings
 
 
@@ -40,7 +40,29 @@ class WorkerSettings(BaseSettings):
 
 
 class TrackersSettings(BaseSettings):
-    default_trackers: list[str] = []
+    default_trackers: list[str] | str = []
+
+    @field_validator("default_trackers", mode="before")
+    @classmethod
+    def parse_trackers(cls, v: Any) -> list[str]:
+        if isinstance(v, list):
+            return [str(item) for item in v]
+        if isinstance(v, str):
+            v = v.strip()
+            if not v:
+                return []
+            import json
+
+            try:
+                parsed = json.loads(v)
+                if isinstance(parsed, list):
+                    return [str(item) for item in parsed]
+            except (json.JSONDecodeError, TypeError):
+                pass
+            if "," in v:
+                return [t.strip() for t in v.split(",") if t.strip()]
+            return [t.strip() for t in v.split() if t.strip()]
+        return []
 
     model_config = {"env_file": ".env", "extra": "ignore"}
 
