@@ -25,7 +25,7 @@ from torrent_stats.interfaces.api.depends import (
     TorrentRepositoryDepends,
     WorkerKeyRepositoryDepends,
 )
-from torrent_stats.interfaces.api.schemas import (
+from torrent_stats.schemas import (
     ActionSuccessResponse,
     TaskClaimResponse,
     TaskFailureRequest,

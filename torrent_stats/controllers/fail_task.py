@@ -4,7 +4,7 @@ import logging
 from datetime import UTC, datetime
 
 from torrent_stats.db.repository import TaskRepository
-from torrent_stats.interfaces.api.schemas import ActionSuccessResponse
+from torrent_stats.schemas import ActionSuccessResponse
 
 logger = logging.getLogger("torrent_stats.worker")
 

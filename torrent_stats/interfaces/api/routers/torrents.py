@@ -10,7 +10,7 @@ from torrent_stats.interfaces.api.depends import (
     TaskRepositoryDepends,
     TorrentRepositoryDepends,
 )
-from torrent_stats.interfaces.api.schemas import TorrentDetailResponse
+from torrent_stats.schemas import TorrentDetailResponse
 
 router = APIRouter(prefix="/torrents", tags=["torrents"])
 
