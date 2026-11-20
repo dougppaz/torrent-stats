@@ -1,10 +1,12 @@
+from __future__ import annotations
+
 from unittest.mock import MagicMock, patch
 
-from torrent_stats.__main__ import main
 from torrent_stats.db.models import WorkerKey
+from torrent_stats.interfaces.cli import cli_main
 
 
-@patch("torrent_stats.__main__.WorkerKeyRepository")
+@patch("torrent_stats.interfaces.cli.WorkerKeyRepository")
 def test_cli_workers_create(mock_repo_cls, capsys):
     mock_repo = MagicMock()
     mock_repo_cls.return_value = mock_repo
@@ -14,7 +16,7 @@ def test_cli_workers_create(mock_repo_cls, capsys):
 
     test_args = ["torrent_stats", "workers", "create", "--description", "Test Worker"]
     with patch("sys.argv", test_args):
-        code = main()
+        code = cli_main()
 
     assert code == 0
     captured = capsys.readouterr()
@@ -22,7 +24,7 @@ def test_cli_workers_create(mock_repo_cls, capsys):
     assert "abc123hash" in captured.out
 
 
-@patch("torrent_stats.__main__.WorkerKeyRepository")
+@patch("torrent_stats.interfaces.cli.WorkerKeyRepository")
 def test_cli_workers_list(mock_repo_cls, capsys):
     mock_repo = MagicMock()
     mock_repo_cls.return_value = mock_repo
@@ -38,7 +40,7 @@ def test_cli_workers_list(mock_repo_cls, capsys):
 
     test_args = ["torrent_stats", "workers", "list"]
     with patch("sys.argv", test_args):
-        code = main()
+        code = cli_main()
 
     assert code == 0
     captured = capsys.readouterr()
@@ -46,7 +48,7 @@ def test_cli_workers_list(mock_repo_cls, capsys):
     assert "Test Worker" in captured.out
 
 
-@patch("torrent_stats.__main__.WorkerKeyRepository")
+@patch("torrent_stats.interfaces.cli.WorkerKeyRepository")
 def test_cli_workers_list_empty(mock_repo_cls, capsys):
     mock_repo = MagicMock()
     mock_repo_cls.return_value = mock_repo
@@ -56,14 +58,14 @@ def test_cli_workers_list_empty(mock_repo_cls, capsys):
 
     test_args = ["torrent_stats", "workers", "list"]
     with patch("sys.argv", test_args):
-        code = main()
+        code = cli_main()
 
     assert code == 0
     captured = capsys.readouterr()
     assert "No worker keys found." in captured.out
 
 
-@patch("torrent_stats.__main__.WorkerKeyRepository")
+@patch("torrent_stats.interfaces.cli.WorkerKeyRepository")
 def test_cli_workers_delete(mock_repo_cls, capsys):
     mock_repo = MagicMock()
     mock_repo_cls.return_value = mock_repo
@@ -74,14 +76,14 @@ def test_cli_workers_delete(mock_repo_cls, capsys):
 
     test_args = ["torrent_stats", "workers", "delete", "abc123hash"]
     with patch("sys.argv", test_args):
-        code = main()
+        code = cli_main()
 
     assert code == 0
     captured = capsys.readouterr()
     assert "deleted successfully" in captured.out
 
 
-@patch("torrent_stats.__main__.WorkerKeyRepository")
+@patch("torrent_stats.interfaces.cli.WorkerKeyRepository")
 def test_cli_workers_delete_not_found(mock_repo_cls, capsys):
     mock_repo = MagicMock()
     mock_repo_cls.return_value = mock_repo
@@ -91,7 +93,7 @@ def test_cli_workers_delete_not_found(mock_repo_cls, capsys):
 
     test_args = ["torrent_stats", "workers", "delete", "nonexistent"]
     with patch("sys.argv", test_args):
-        code = main()
+        code = cli_main()
 
     assert code == 1
     captured = capsys.readouterr()
@@ -102,6 +104,6 @@ def test_cli_no_args():
     test_args = ["torrent_stats"]
     with patch("sys.argv", test_args):
         try:
-            main()
+            cli_main()
         except SystemExit as e:
             assert e.code != 0
