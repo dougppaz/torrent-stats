@@ -57,6 +57,26 @@ If running CouchDB independently or via Docker Compose for the first time, you c
 ./scripts/setup-couchdb.sh "http://admin:admin@localhost:5984"
 ```
 
+### Running the Worker (`worker/`)
+
+1. Build the Go worker binary:
+   ```bash
+   cd worker
+   go build -o torrent-stats-worker .
+   ```
+
+2. Run the worker binary (either via environment variables or command-line arguments, with arguments taking precedence):
+   ```bash
+   # Using command-line arguments
+   ./worker/torrent-stats-worker --api-url "http://localhost:8000" --worker-key "your-worker-key" --claim-interval "10s"
+
+   # Or using environment variables
+   export TORRENT_STATS_API_URL="http://localhost:8000"
+   export TORRENT_STATS_WORKER_KEY="your-worker-key"
+   export TORRENT_STATS_CLAIM_INTERVAL="30s"
+   ./worker/torrent-stats-worker
+   ```
+
 ---
 
 ## Environment Variables
@@ -74,3 +94,13 @@ The API service can be configured using the following environment variables (or 
 | `WORKER_KEY_SALT` | `change-this-salt-in-production` | Salt used for secure HMAC-SHA256 hashing of worker API keys |
 | `CURRENT_STORAGE_PROFILE` | `default` | Active storage profile key to use for uploads |
 | `STORAGE_PROFILE_[KEY]_[PARAM]` | *none* | Dynamic storage profile configuration (e.g., `STORAGE_PROFILE_LOCAL_TYPE=local`, `STORAGE_PROFILE_LOCAL_TARGET_PATH_TEMPLATE=.torrents/{info_hash}.torrent`) |
+
+### Worker Configuration (`worker/`)
+
+The remote worker can be configured using environment variables or command-line arguments (where terminal arguments take priority over environment variables):
+
+| Environment Variable | Command-Line Flag | Default | Description |
+| --- | --- | --- | --- |
+| `TORRENT_STATS_API_URL` | `--api-url` / `-u` | *(Required)* | Torrent Stats API base URL |
+| `TORRENT_STATS_WORKER_KEY` | `--worker-key` / `-k` | *(Required)* | Worker authentication key (`X-Worker-Key`) |
+| `TORRENT_STATS_CLAIM_INTERVAL` | `--claim-interval` / `-i` | `30s` | Polling interval for claiming tasks |
