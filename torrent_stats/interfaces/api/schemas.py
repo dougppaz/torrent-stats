@@ -48,6 +48,10 @@ class TaskClaimResponse(BaseModel):
     lease_expires_at: str
 
 
+class TaskFailureRequest(BaseModel):
+    error_message: str
+
+
 class ActionSuccessResponse(BaseModel):
     status: str
     info_hash: str

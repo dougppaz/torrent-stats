@@ -284,3 +284,60 @@ def test_worker_submit_tracker_stats_and_prune():
         assert response4.status_code == 200
     finally:
         app.dependency_overrides.clear()
+
+
+def test_worker_task_fail_success():
+    mock_worker_key_repo = MagicMock()
+    mock_task_repo = MagicMock()
+    mock_worker_key_repo.find_by_key_hash.return_value = WorkerKey(
+        _id="hash1", key_hash="hash1"
+    )
+    task = TaskDocument(
+        _id="task-fail-1",
+        info_hash="abc123456",
+        task_type="scrape_torrent",
+        status="claimed",
+    )
+    mock_task_repo.get.return_value = task
+
+    app.dependency_overrides[get_worker_key_repository] = lambda: mock_worker_key_repo
+    app.dependency_overrides[get_task_repository] = lambda: mock_task_repo
+
+    try:
+        response = client.post(
+            "/worker/tasks/task-fail-1/fail",
+            headers={"X-Worker-Key": "valid-key"},
+            json={"error_message": "not implemented"},
+        )
+    finally:
+        app.dependency_overrides.clear()
+
+    assert response.status_code == 200
+    data = response.json()
+    assert data["status"] == "success"
+    assert data["info_hash"] == "abc123456"
+    assert task.status == "failed"
+    assert task.error_message == "not implemented"
+
+
+def test_worker_task_fail_not_found():
+    mock_worker_key_repo = MagicMock()
+    mock_task_repo = MagicMock()
+    mock_worker_key_repo.find_by_key_hash.return_value = WorkerKey(
+        _id="hash1", key_hash="hash1"
+    )
+    mock_task_repo.get.return_value = None
+
+    app.dependency_overrides[get_worker_key_repository] = lambda: mock_worker_key_repo
+    app.dependency_overrides[get_task_repository] = lambda: mock_task_repo
+
+    try:
+        response = client.post(
+            "/worker/tasks/nonexistent/fail",
+            headers={"X-Worker-Key": "valid-key"},
+            json={"error_message": "not implemented"},
+        )
+    finally:
+        app.dependency_overrides.clear()
+
+    assert response.status_code == 404

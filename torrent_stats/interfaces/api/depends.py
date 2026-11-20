@@ -3,6 +3,7 @@ from __future__ import annotations
 from typing import Annotated, TypeAlias
 
 from fastapi import Depends
+from torrent_stats.controllers import TaskFailureController
 from torrent_stats.db.client import CouchDBClient
 from torrent_stats.db.repository import (
     TaskRepository,
@@ -54,6 +55,12 @@ def get_storage_manager() -> StorageManager:
     return StorageManager()
 
 
+def get_task_failure_controller(
+    task_repository: TaskRepositoryDepends,
+) -> TaskFailureController:
+    return TaskFailureController(task_repository=task_repository)
+
+
 TorrentRepositoryDepends: TypeAlias = Annotated[
     TorrentMetadataRepository, Depends(get_torrent_repository)
 ]
@@ -68,4 +75,7 @@ HitCounterServiceDepends: TypeAlias = Annotated[
 ]
 StorageManagerDepends: TypeAlias = Annotated[
     StorageManager, Depends(get_storage_manager)
+]
+TaskFailureControllerDepends: TypeAlias = Annotated[
+    TaskFailureController, Depends(get_task_failure_controller)
 ]

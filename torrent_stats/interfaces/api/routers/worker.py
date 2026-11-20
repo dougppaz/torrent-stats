@@ -20,6 +20,7 @@ from torrent_stats.controllers.submit_tracker_stats import TrackerStatsControlle
 from torrent_stats.controllers.upload_torrent import TorrentUploadController
 from torrent_stats.interfaces.api.depends import (
     StorageManagerDepends,
+    TaskFailureControllerDepends,
     TaskRepositoryDepends,
     TorrentRepositoryDepends,
     WorkerKeyRepositoryDepends,
@@ -27,6 +28,7 @@ from torrent_stats.interfaces.api.depends import (
 from torrent_stats.interfaces.api.schemas import (
     ActionSuccessResponse,
     TaskClaimResponse,
+    TaskFailureRequest,
 )
 from torrent_stats.settings import worker_settings
 
@@ -110,6 +112,26 @@ def claim_task(
     if res is None:
         response.status_code = status.HTTP_204_NO_CONTENT
         return None
+    return res
+
+
+@router.post(
+    "/tasks/{task_id}/fail",
+    status_code=status.HTTP_200_OK,
+    response_model=ActionSuccessResponse,
+)
+def fail_task(
+    task_id: str,
+    payload: TaskFailureRequest,
+    controller: TaskFailureControllerDepends,
+    _: str = Depends(verify_worker_key),
+):
+    res = controller.fail_task(task_id=task_id, error_message=payload.error_message)
+    if res is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Task not found",
+        )
     return res
 
 
