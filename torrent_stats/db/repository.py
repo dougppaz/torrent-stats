@@ -74,6 +74,9 @@ class WorkerKeyRepository(BaseRepository[WorkerKey]):
         super().__init__(WorkerKey, client=client)
 
     def save_key(self, raw_key: str, description: str = "") -> WorkerKey:
+        if not description or not description.strip():
+            now_str = datetime.now(UTC).isoformat()
+            description = f"Worker Key created at {now_str}"
         hashed = hash_worker_key(raw_key)
         worker_key = WorkerKey(_id=hashed, key_hash=hashed, description=description)
         return self.save(worker_key)

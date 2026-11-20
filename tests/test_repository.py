@@ -73,6 +73,18 @@ def test_worker_key_repository():
     assert repo.find_by_key_hash("unknown-key") is None
 
 
+def test_worker_key_repository_empty_description():
+    mock_client = MagicMock()
+    repo = WorkerKeyRepository(client=mock_client)
+    mock_client.save_doc.return_value = {"id": "hash", "rev": "1-rev"}
+
+    wk = repo.save_key("raw-key", "")
+    assert wk.description.startswith("Worker Key created at ")
+
+    wk2 = repo.save_key("raw-key-2", "   ")
+    assert wk2.description.startswith("Worker Key created at ")
+
+
 def test_task_repository_find_claimable():
     mock_client = MagicMock()
     mock_db = MagicMock()
