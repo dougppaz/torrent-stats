@@ -60,6 +60,22 @@ def bump_version_string(current_version, bump_type):
     return f"{major}.{minor}.{patch}"
 
 
+def get_next_rc_version(base_version):
+    try:
+        tags = run_git(["git", "tag", "-l", f"v{base_version}-rc*"]).splitlines()
+    except Exception:
+        tags = []
+    max_n = -1
+    for tag in tags:
+        tag = tag.strip()
+        match = re.search(rf"^v{base_version}-rc(\d+)$", tag)
+        if match:
+            n = int(match.group(1))
+            if n > max_n:
+                max_n = n
+    return max_n + 1
+
+
 def read_pyproject_version():
     content = Path("pyproject.toml").read_text(encoding="utf-8")
     match = re.search(r'^version\s*=\s*"([^"]+)"', content, re.MULTILINE)
@@ -94,13 +110,27 @@ def main():
     for c in commits[:10]:
         print(f" - {c}")
 
-    bump_type = determine_bump_type(commits)
-    print(f"Tipo de bump determinado: {bump_type}")
-
     current_version = read_pyproject_version()
     print(f"Versão atual (pyproject.toml): {current_version}")
 
-    new_version = bump_version_string(current_version, bump_type)
+    clean_current = current_version.split("-")[0]
+    is_rc_current = "-" in current_version
+
+    if is_rc_current:
+        base_version = clean_current
+        print(f"Versão atual é um release candidate. Base version: {base_version}")
+    else:
+        bump_type = determine_bump_type(commits)
+        print(f"Tipo de bump determinado: {bump_type}")
+        base_version = bump_version_string(clean_current, bump_type)
+
+    is_rc = "--rc" in sys.argv or "--release-candidate" in sys.argv
+    if is_rc:
+        rc_num = get_next_rc_version(base_version)
+        new_version = f"{base_version}-rc{rc_num}"
+        print(f"Modo Release Candidate ativado. RC número: {rc_num}")
+    else:
+        new_version = base_version
     print(f"Nova versão calculada: {new_version}")
 
     if "--dry-run" in sys.argv:
