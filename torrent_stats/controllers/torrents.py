@@ -115,6 +115,7 @@ class TorrentController:
             tasks=[
                 TaskResponse(
                     task_id=t.id,
+                    task_type=t.task_type,
                     status=t.status,
                     tracker_url=t.tracker_url,
                     updated_at=t.updated_at
