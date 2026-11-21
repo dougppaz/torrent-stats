@@ -214,3 +214,26 @@ class TaskRepository(BaseRepository[TaskDocument]):
             db = self.client.get_db()
             all_docs = [db.get(doc_id) for doc_id in db if not doc_id.startswith("_")]
             return [TaskDocument.model_validate(d) for d in all_docs if d is not None]
+
+    def update_task_status(
+        self,
+        task_id: str,
+        status: str,
+        lease_expires_at: str | None = None,
+        claimed_at: str | None = None,
+        last_attempt_at: str | None = None,
+        error_message: str | None = None,
+    ) -> TaskDocument | None:
+        task = self.get(task_id)
+        if not task:
+            return None
+        task.status = status
+        if lease_expires_at is not None:
+            task.lease_expires_at = lease_expires_at
+        if claimed_at is not None:
+            task.claimed_at = claimed_at
+        if last_attempt_at is not None:
+            task.last_attempt_at = last_attempt_at
+        if error_message is not None:
+            task.error_message = error_message
+        return self.save(task)

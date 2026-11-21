@@ -82,13 +82,17 @@ class TaskClaimController:
             len(candidates),
         )
 
-        task.status = "claimed"
-        task.claimed_at = now.isoformat()
         lease_expires = now.timestamp() + self.worker_settings.worker_task_lease_seconds
-        task.lease_expires_at = datetime.fromtimestamp(lease_expires, UTC).isoformat()
-        task.last_attempt_at = now.isoformat()
-
-        self.task_repo.save(task)
+        lease_expires_at = datetime.fromtimestamp(lease_expires, UTC).isoformat()
+        updated = self.task_repo.update_task_status(
+            task_id=task.id,
+            status="claimed",
+            lease_expires_at=lease_expires_at,
+            claimed_at=now.isoformat(),
+            last_attempt_at=now.isoformat(),
+        )
+        if updated:
+            task = updated
 
         logger.info(
             "Worker successfully claimed task %s for info_hash %s (type: %s, lease expires at %s).",
@@ -104,5 +108,5 @@ class TaskClaimController:
             task_type=task.task_type,
             tracker_url=task.tracker_url,
             updated_at=task.tracker_updated_at,
-            lease_expires_at=task.lease_expires_at,
+            lease_expires_at=task.lease_expires_at or "",
         )

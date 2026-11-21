@@ -77,6 +77,15 @@ Robust persistence layer with targeted update methods and automatic retry on Cou
 4. WHEN `GET /torrents/{hash}` is invoked under concurrent load THEN the system SHALL successfully record hits, update trackers, and return 200 OK without raising `ResourceConflict`.
    - concurrent requests (5 requests simultaneously) → all succeed with 200 OK.
 
+### S2: Task Repository Updates & Save Review (P2)
+
+Targeted update methods for `TaskRepository` and review of repository write operations across controllers.
+
+**Acceptance Criteria**
+
+1. WHEN `TaskRepository.save` is called with a `TaskDocument` update THEN the system SHALL persist the updated status, `lease_expires_at`, and `last_attempt_at` fields in CouchDB successfully.
+2. WHEN worker controllers (`claim_task`, `fail_task`, `submit_tracker_stats`, etc.) persist task or torrent state THEN the system SHALL execute repository saves via `CouchDBClient` with automatic `ResourceConflict` retry.
+
 ## Out of scope
 
 | Excluded | Why |

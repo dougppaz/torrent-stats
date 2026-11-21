@@ -20,10 +20,15 @@ class TaskFailureController:
         if not task:
             return None
 
-        task.status = "failed"
-        task.error_message = error_message
-        task.last_attempt_at = datetime.now(UTC).isoformat()
-        self.task_repo.save(task)
+        updated = self.task_repo.update_task_status(
+            task_id=task_id,
+            status="failed",
+            error_message=error_message,
+            last_attempt_at=datetime.now(UTC).isoformat(),
+        )
+        if not updated:
+            return None
+        task = updated
 
         logger.warning("Task %s failed: %s", task_id, error_message)
         return ActionSuccessResponse(status="success", info_hash=task.info_hash)
