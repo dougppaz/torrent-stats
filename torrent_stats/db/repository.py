@@ -7,7 +7,12 @@ from typing import Generic, TypeVar
 from pydantic import BaseModel
 from torrent_stats.db.client import CouchDBClient
 from torrent_stats.db.crypto import hash_worker_key
-from torrent_stats.db.models import TaskDocument, TorrentMetadata, WorkerKey
+from torrent_stats.db.models import (
+    TaskDocument,
+    TorrentMetadata,
+    TrackerStat,
+    WorkerKey,
+)
 
 T = TypeVar("T", bound=BaseModel)
 logger = logging.getLogger(__name__)
@@ -67,6 +72,47 @@ class TorrentMetadataRepository(BaseRepository[TorrentMetadata]):
             )
             saved = self.save(torrent)
             return saved, True
+
+    def update_hits(
+        self, info_hash: str, total_hits: int, last_hit_at: str
+    ) -> TorrentMetadata:
+        torrent = self.find_by_info_hash(info_hash)
+        if torrent:
+            torrent.total_hits = total_hits
+            torrent.last_hit_at = last_hit_at
+            return self.save(torrent)
+        else:
+            torrent = TorrentMetadata(
+                info_hash=info_hash,
+                total_hits=total_hits,
+                last_hit_at=last_hit_at,
+            )
+            return self.save(torrent)
+
+    def add_tracker_stats(
+        self, info_hash: str, tracker_urls: list[str]
+    ) -> TorrentMetadata:
+        torrent = self.find_by_info_hash(info_hash)
+        if not torrent:
+            torrent = TorrentMetadata(info_hash=info_hash)
+
+        existing_urls = {ts.tracker_url for ts in torrent.tracker_stats}
+        added = False
+        for tr in tracker_urls:
+            if tr not in existing_urls:
+                torrent.tracker_stats.append(
+                    TrackerStat(
+                        tracker_url=tr,
+                        seeds=None,
+                        peers=None,
+                        updated_at=None,
+                    )
+                )
+                existing_urls.add(tr)
+                added = True
+        if added or not torrent.total_hits:
+            return self.save(torrent)
+        return torrent
 
 
 class WorkerKeyRepository(BaseRepository[WorkerKey]):
