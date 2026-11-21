@@ -5,7 +5,7 @@ from pydantic import BaseModel
 
 class TaskResponse(BaseModel):
     task_id: str
-    task_type: str = "scrape_torrent"
+    task_type: str
     status: str
     tracker_url: str | None = None
     updated_at: str | None = None
