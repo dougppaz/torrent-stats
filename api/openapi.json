@@ -675,10 +675,7 @@
       "TorrentFileResponse": {
         "properties": {
           "path": {
-            "items": {
-              "type": "string"
-            },
-            "type": "array",
+            "type": "string",
             "title": "Path"
           },
           "length": {
