@@ -1,6 +1,6 @@
 # CouchDB Resource Conflict Resolution
 
-**Approved**: <pending user review>
+**Approved**: 2026-11-21 - user: "ok"
 
 > Build this with **tlc-implement**. Every criterion becomes a check with a proof; nothing under
 > the open questions is settled while building.
