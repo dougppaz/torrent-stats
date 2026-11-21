@@ -4,8 +4,12 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"mime/multipart"
 	"net/http"
+	"strconv"
 	"time"
+
+	"github.com/betorbr/torrent-stats-worker/tasks"
 )
 
 type Task struct {
@@ -130,3 +134,53 @@ func (c *Client) SubmitStats(infoHash, trackerURL string, success bool, seeds, p
 	}
 	return nil
 }
+
+func (c *Client) UploadTorrent(infoHash, name string, totalSize int64, torrentFileBytes []byte, files []tasks.TorrentFilePayload) error {
+	reqURL := fmt.Sprintf("%s/worker/torrents", c.APIURL)
+
+	bodyBuf := &bytes.Buffer{}
+	writer := multipart.NewWriter(bodyBuf)
+
+	_ = writer.WriteField("info_hash", infoHash)
+	_ = writer.WriteField("name", name)
+	_ = writer.WriteField("total_size", strconv.FormatInt(totalSize, 10))
+
+	if len(files) > 0 {
+		filesJSON, err := json.Marshal(files)
+		if err == nil {
+			_ = writer.WriteField("files", string(filesJSON))
+		}
+	}
+
+	part, err := writer.CreateFormFile("torrent_file", infoHash+".torrent")
+	if err != nil {
+		return err
+	}
+	if _, err := part.Write(torrentFileBytes); err != nil {
+		return err
+	}
+
+	if err := writer.Close(); err != nil {
+		return err
+	}
+
+	req, err := http.NewRequest(http.MethodPost, reqURL, bodyBuf)
+	if err != nil {
+		return err
+	}
+	req.Header.Set("X-Worker-Key", c.WorkerKey)
+	req.Header.Set("Content-Type", writer.FormDataContentType())
+
+	uploadClient := &http.Client{Timeout: 30 * time.Second}
+	resp, err := uploadClient.Do(req)
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusCreated && resp.StatusCode != http.StatusOK {
+		return fmt.Errorf("unexpected status code for torrent upload: %d", resp.StatusCode)
+	}
+	return nil
+}
+
