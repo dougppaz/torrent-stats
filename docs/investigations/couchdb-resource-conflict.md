@@ -72,3 +72,42 @@ Ao rastrear o caminho da requisição `GET /torrents/{hash}`, identificou-se o s
 
 - Consolidar as atualizações de metadados do torrent (hits, trackers, etc.) em uma única operação de salvamento por requisição, ou utilizar padrão de retry em caso de `ResourceConflict`.
 - Separar ou otimizar `HitCounterService` para não realizar salvamentos redundantes no CouchDB se o controller já vai persistir o estado atualizado do torrent.
+
+---
+
+## 5. Levantamento sobre Operações de Atualização (Update) nos Repositórios e CouchDB
+
+### 5.1. Como o CouchDB lida com Updates?
+O CouchDB utiliza armazenamento orientado a documentos JSON e **MVCC (Multi-Version Concurrency Control)** baseado em revisões (`_rev`). O CouchDB nativamente não possui uma operação de "patch" genérica ou update parcial de campos sem passar por document update handlers (funções JS em design docs). 
+
+Portanto, um update em Python/CouchDB padrão consiste em:
+1. Buscar o documento atual (obtendo o `_id` e o `_rev` mais recente).
+2. Modificar apenas os campos desejados no dicionário/modelo em memória.
+3. Salvar o documento com a revisão correspondente.
+
+### 5.2. Revisão dos Repositórios Atuais
+Atualmente, a classe `BaseRepository` fornece apenas `get(doc_id)` e `save(instance)`. Não existem métodos específicos de update parcial ou de atualização de campos específicos usando a chave primária. Cada alteração exige carregar o modelo inteiro e dar `save()`, o que sobrescreve o documento inteiro e colide facilmente se o `_rev` mudou.
+
+### 5.3. Métodos Específicos de Update Baseados nas Demandas do Código
+
+Com base nas demandas atuais do sistema, podemos adicionar métodos específicos nos repositórios para atualizar campos pontuais utilizando a chave primária (`info_hash`, `id`, etc.):
+
+1. **`TorrentMetadataRepository.update_hits(info_hash: str, total_hits: int, last_hit_at: str)`**:
+   - **Demanda**: `HitCounterService.record_hit` precisa atualizar apenas os hits e a data do último hit do torrent sem precisar reescrever o documento inteiro com dados potencialmente estáticos ou conflitantes de trackers.
+   - **Implementação proposta**: Busca o documento pelo `info_hash`, atualiza exclusivamente `total_hits` e `last_hit_at`, preservando `_rev`, e salva.
+
+2. **`TorrentMetadataRepository.add_tracker_stat(info_hash: str, tracker_stat: TrackerStat)`**:
+   - **Demanda**: Adicionar novos trackers quando solicitados na rota de torrents.
+   - **Implementação proposta**: Busca o documento, verifica se o tracker já existe em `tracker_stats`, faz o `append` caso contrário, e persiste.
+
+3. **`TaskRepository.update_task_status(task_id: str, status: str, ...)`**:
+   - **Demanda**: Workers e API atualizam status de tarefas (`pending`, `claimed`, `completed`, `failed`), leases e erros.
+   - **Implementação proposta**: Método específico para atualizar status e campos relacionados de uma tarefa por ID.
+
+### 5.4. Isso Resolveria o Problema?
+- **Parcialmente para redução de conflitos lógicos**: Ter métodos focados evita carregar e sobrescrever estruturas complexas inteiras desnecessariamente.
+- **Não resolve sozinho para concorrência extrema**: Como o CouchDB é baseado em MVCC, se duas requisições tentarem atualizar o mesmo documento no mesmo milissegundo, a segunda falhará com `ResourceConflict` se a revisão tiver mudado.
+- **Solução Definitiva Combinada**: Para resolver 100% dos conflitos de concorrência e evitar escritas múltiplas redundantes na mesma requisição, a estratégia ideal combina:
+  1. **Métodos de update direcionados** nos repositórios.
+  2. **Consolidação em uma única escrita** por requisição HTTP no Controller.
+  3. **Mecanismo de Retry com Optimistic Locking** (ex: um decorador ou bloco `try/except` que captura `ResourceConflict`, re-busca a nova revisão e tenta novamente até N vezes) no `CouchDBClient` ou `BaseRepository.save`.
