@@ -9,7 +9,7 @@ services:
       - REDIS_URL=redis://redis:6379/0
       - WORKER_ALLOW_ANY_KEY=true
       - LOG_LEVEL=DEBUG
-      - DEFAULT_TRACKERS=udp://tracker.opentrackr.org:1337/announce
+      - DEFAULT_TRACKERS=udp://tracker.opentrackr.org:1337/announce,udp://open.stealth.si:80/announce,udp://tracker.torrent.eu.org:451/announce
     depends_on:
       - couchdb
       - redis

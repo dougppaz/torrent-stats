@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import logging
+from datetime import UTC, datetime
 
 import pydantic
 from fastapi import UploadFile
@@ -79,8 +80,10 @@ class TorrentUploadController:
 
         tasks = self.task_repo.find_by_info_hash(info_hash)
         scrape_task = next((t for t in tasks if t.task_type == "scrape_torrent"), None)
+        now = datetime.now(UTC).isoformat()
         if scrape_task:
             scrape_task.status = "completed"
+            scrape_task.updated_at = now
             self.task_repo.save(scrape_task)
         else:
             self.task_repo.save(
@@ -88,6 +91,7 @@ class TorrentUploadController:
                     info_hash=info_hash,
                     task_type="scrape_torrent",
                     status="completed",
+                    updated_at=now,
                 )
             )
 

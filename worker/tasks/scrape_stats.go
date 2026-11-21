@@ -30,7 +30,7 @@ func (h *ScrapeStatsHandler) Execute(taskID, infoHash string) error {
 	if err := h.client.FailTask(taskID, errMsg); err != nil {
 		log.Printf("Failed to report task failure to API: %v", err)
 	}
-	return fmt.Errorf(errMsg)
+	return fmt.Errorf("%s", errMsg)
 }
 
 func (h *ScrapeStatsHandler) ExecuteWithTracker(taskID, infoHash, trackerURL string) error {

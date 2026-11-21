@@ -1,0 +1,823 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "torrent-stats API",
+    "version": "1.0.0"
+  },
+  "paths": {
+    "/torrents/{hash}": {
+      "get": {
+        "tags": [
+          "torrents"
+        ],
+        "summary": "Get Torrent",
+        "operationId": "get_torrent_torrents__hash__get",
+        "parameters": [
+          {
+            "name": "hash",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Hash"
+            }
+          },
+          {
+            "name": "trackers",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Custom tracker URLs",
+              "title": "Trackers"
+            },
+            "description": "Custom tracker URLs"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TorrentDetailResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/worker/tasks/claim": {
+      "post": {
+        "tags": [
+          "worker"
+        ],
+        "summary": "Claim Task",
+        "operationId": "claim_task_worker_tasks_claim_post",
+        "parameters": [
+          {
+            "name": "X-Worker-Key",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Worker-Key"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "anyOf": [
+                    {
+                      "$ref": "#/components/schemas/TaskClaimResponse"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ],
+                  "title": "Response Claim Task Worker Tasks Claim Post"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/worker/tasks/{task_id}/fail": {
+      "post": {
+        "tags": [
+          "worker"
+        ],
+        "summary": "Fail Task",
+        "operationId": "fail_task_worker_tasks__task_id__fail_post",
+        "parameters": [
+          {
+            "name": "task_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Task Id"
+            }
+          },
+          {
+            "name": "X-Worker-Key",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Worker-Key"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TaskFailureRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ActionSuccessResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/worker/torrents": {
+      "post": {
+        "tags": [
+          "worker"
+        ],
+        "summary": "Upload Torrent",
+        "operationId": "upload_torrent_worker_torrents_post",
+        "parameters": [
+          {
+            "name": "X-Worker-Key",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Worker-Key"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/Body_upload_torrent_worker_torrents_post"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ActionSuccessResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/worker/torrents/{hash}/stats": {
+      "post": {
+        "tags": [
+          "worker"
+        ],
+        "summary": "Submit Tracker Stats",
+        "operationId": "submit_tracker_stats_worker_torrents__hash__stats_post",
+        "parameters": [
+          {
+            "name": "hash",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Hash"
+            }
+          },
+          {
+            "name": "X-Worker-Key",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Worker-Key"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TrackerStatsSubmit"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ActionSuccessResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/health": {
+      "get": {
+        "summary": "Health Check",
+        "operationId": "health_check_health_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "ActionSuccessResponse": {
+        "properties": {
+          "status": {
+            "type": "string",
+            "title": "Status"
+          },
+          "info_hash": {
+            "type": "string",
+            "title": "Info Hash"
+          }
+        },
+        "type": "object",
+        "required": [
+          "status",
+          "info_hash"
+        ],
+        "title": "ActionSuccessResponse"
+      },
+      "Body_upload_torrent_worker_torrents_post": {
+        "properties": {
+          "info_hash": {
+            "type": "string",
+            "title": "Info Hash"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "total_size": {
+            "type": "integer",
+            "title": "Total Size"
+          },
+          "torrent_file": {
+            "type": "string",
+            "contentMediaType": "application/octet-stream",
+            "title": "Torrent File"
+          },
+          "storage_profile_key": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Storage Profile Key"
+          },
+          "storage_params": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Storage Params"
+          },
+          "files": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Files"
+          }
+        },
+        "type": "object",
+        "required": [
+          "info_hash",
+          "name",
+          "total_size",
+          "torrent_file"
+        ],
+        "title": "Body_upload_torrent_worker_torrents_post"
+      },
+      "HTTPValidationError": {
+        "properties": {
+          "detail": {
+            "items": {
+              "$ref": "#/components/schemas/ValidationError"
+            },
+            "type": "array",
+            "title": "Detail"
+          }
+        },
+        "type": "object",
+        "title": "HTTPValidationError"
+      },
+      "TaskClaimResponse": {
+        "properties": {
+          "task_id": {
+            "type": "string",
+            "title": "Task Id"
+          },
+          "info_hash": {
+            "type": "string",
+            "title": "Info Hash"
+          },
+          "task_type": {
+            "type": "string",
+            "title": "Task Type"
+          },
+          "tracker_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Tracker Url"
+          },
+          "updated_at": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Updated At"
+          },
+          "lease_expires_at": {
+            "type": "string",
+            "title": "Lease Expires At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "task_id",
+          "info_hash",
+          "task_type",
+          "lease_expires_at"
+        ],
+        "title": "TaskClaimResponse"
+      },
+      "TaskFailureRequest": {
+        "properties": {
+          "error_message": {
+            "type": "string",
+            "title": "Error Message"
+          }
+        },
+        "type": "object",
+        "required": [
+          "error_message"
+        ],
+        "title": "TaskFailureRequest"
+      },
+      "TaskResponse": {
+        "properties": {
+          "task_id": {
+            "type": "string",
+            "title": "Task Id"
+          },
+          "status": {
+            "type": "string",
+            "title": "Status"
+          },
+          "tracker_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Tracker Url"
+          },
+          "updated_at": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Updated At"
+          },
+          "created_at": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Created At"
+          },
+          "error_message": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Error Message"
+          }
+        },
+        "type": "object",
+        "required": [
+          "task_id",
+          "status"
+        ],
+        "title": "TaskResponse"
+      },
+      "TorrentDetailResponse": {
+        "properties": {
+          "info_hash": {
+            "type": "string",
+            "title": "Info Hash"
+          },
+          "name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Name"
+          },
+          "total_size": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Total Size"
+          },
+          "storage_profile_key": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Storage Profile Key"
+          },
+          "storage_params": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Storage Params"
+          },
+          "download_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Download Url"
+          },
+          "total_hits": {
+            "type": "integer",
+            "title": "Total Hits",
+            "default": 0
+          },
+          "last_hit_at": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Last Hit At"
+          },
+          "files": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/TorrentFileResponse"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Files"
+          },
+          "tracker_stats": {
+            "items": {
+              "$ref": "#/components/schemas/TrackerStatResponse"
+            },
+            "type": "array",
+            "title": "Tracker Stats",
+            "default": []
+          },
+          "tasks": {
+            "items": {
+              "$ref": "#/components/schemas/TaskResponse"
+            },
+            "type": "array",
+            "title": "Tasks",
+            "default": []
+          }
+        },
+        "type": "object",
+        "required": [
+          "info_hash"
+        ],
+        "title": "TorrentDetailResponse"
+      },
+      "TorrentFileResponse": {
+        "properties": {
+          "path": {
+            "type": "string",
+            "title": "Path"
+          },
+          "length": {
+            "type": "integer",
+            "title": "Length"
+          }
+        },
+        "type": "object",
+        "required": [
+          "path",
+          "length"
+        ],
+        "title": "TorrentFileResponse"
+      },
+      "TrackerStatResponse": {
+        "properties": {
+          "tracker_url": {
+            "type": "string",
+            "title": "Tracker Url"
+          },
+          "seeds": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Seeds"
+          },
+          "peers": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Peers"
+          },
+          "updated_at": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Updated At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "tracker_url"
+        ],
+        "title": "TrackerStatResponse"
+      },
+      "TrackerStatsSubmit": {
+        "properties": {
+          "tracker_url": {
+            "type": "string",
+            "title": "Tracker Url"
+          },
+          "success": {
+            "type": "boolean",
+            "title": "Success"
+          },
+          "seeds": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Seeds",
+            "default": 0
+          },
+          "peers": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Peers",
+            "default": 0
+          }
+        },
+        "type": "object",
+        "required": [
+          "tracker_url",
+          "success"
+        ],
+        "title": "TrackerStatsSubmit"
+      },
+      "ValidationError": {
+        "properties": {
+          "loc": {
+            "items": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "integer"
+                }
+              ]
+            },
+            "type": "array",
+            "title": "Location"
+          },
+          "msg": {
+            "type": "string",
+            "title": "Message"
+          },
+          "type": {
+            "type": "string",
+            "title": "Error Type"
+          },
+          "input": {
+            "title": "Input"
+          },
+          "ctx": {
+            "type": "object",
+            "title": "Context"
+          }
+        },
+        "type": "object",
+        "required": [
+          "loc",
+          "msg",
+          "type"
+        ],
+        "title": "ValidationError"
+      }
+    }
+  }
+}

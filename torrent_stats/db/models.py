@@ -7,7 +7,7 @@ from pydantic import BaseModel, Field, model_validator
 
 
 class TorrentFile(BaseModel):
-    path: list[str]
+    path: str
     length: int
 
 
@@ -27,6 +27,7 @@ class TaskItem(BaseModel):
     claimed_at: str | None = None
     lease_expires_at: str | None = None
     last_attempt_at: str | None = None
+    updated_at: str | None = None
     error_message: str | None = None
 
 
@@ -40,6 +41,7 @@ class TaskDocument(BaseModel):
     claimed_at: str | None = None
     lease_expires_at: str | None = None
     last_attempt_at: str | None = None
+    updated_at: str | None = None
     error_message: str | None = None
     tracker_url: str | None = None
     tracker_updated_at: str | None = None
