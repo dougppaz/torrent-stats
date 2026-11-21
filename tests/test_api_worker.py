@@ -20,6 +20,8 @@ from torrent_stats.interfaces.api.main import app
 
 client = TestClient(app)
 
+VALID_HASH = "abcdef1234567890abcdef1234567890abcdef12"
+
 
 def test_worker_unauthorized():
     mock_worker_key_repo = MagicMock()
@@ -169,14 +171,14 @@ def test_worker_upload_torrent_full():
     )
     mock_storage_manager.upload_torrent.return_value = (
         "ftp",
-        {"file_path": "abc123.torrent"},
-        "ftp://server/abc123.torrent",
+        {"file_path": f"{VALID_HASH}.torrent"},
+        f"ftp://server/{VALID_HASH}.torrent",
     )
     mock_torrent_repo.find_by_info_hash.return_value = None
     mock_task_repo.find_by_info_hash.return_value = [
         TaskDocument(
             _id="task-abc",
-            info_hash="abc123",
+            info_hash=VALID_HASH,
             task_type="scrape_torrent",
             status="pending",
         )
@@ -192,7 +194,7 @@ def test_worker_upload_torrent_full():
             "/worker/torrents",
             headers={"X-Worker-Key": "valid-key"},
             data={
-                "info_hash": "abc123",
+                "info_hash": VALID_HASH,
                 "name": "Test Torrent",
                 "total_size": 2048,
                 "storage_profile_key": "ftp",
@@ -207,7 +209,7 @@ def test_worker_upload_torrent_full():
     assert response.status_code == 201
     data = response.json()
     assert data["status"] == "success"
-    assert data["info_hash"] == "abc123"
+    assert data["info_hash"] == VALID_HASH
 
 
 def test_worker_submit_tracker_stats_and_prune():
@@ -219,7 +221,7 @@ def test_worker_submit_tracker_stats_and_prune():
         _id="hash1", key_hash="hash1"
     )
     torrent = TorrentMetadata(
-        info_hash="abc123",
+        info_hash=VALID_HASH,
         tracker_stats=[
             TrackerStat(tracker_url="udp://tracker.test:1337", consecutive_failures=2)
         ],
@@ -228,7 +230,7 @@ def test_worker_submit_tracker_stats_and_prune():
     mock_task_repo.find_by_info_hash.return_value = [
         TaskDocument(
             _id="task-stats",
-            info_hash="abc123",
+            info_hash=VALID_HASH,
             task_type="scrape_stats",
             tracker_url="udp://tracker.test:1337",
             status="claimed",
@@ -242,7 +244,7 @@ def test_worker_submit_tracker_stats_and_prune():
     try:
         # Submit failure (3rd consecutive failure -> should prune)
         response = client.post(
-            "/worker/torrents/abc123/stats",
+            f"/worker/torrents/{VALID_HASH}/stats",
             headers={"X-Worker-Key": "valid-key"},
             json={"tracker_url": "udp://tracker.test:1337", "success": False},
         )
@@ -251,7 +253,7 @@ def test_worker_submit_tracker_stats_and_prune():
 
         # Submit success for new tracker
         response2 = client.post(
-            "/worker/torrents/abc123/stats",
+            f"/worker/torrents/{VALID_HASH}/stats",
             headers={"X-Worker-Key": "valid-key"},
             json={
                 "tracker_url": "udp://tracker.new:1337",
@@ -264,7 +266,7 @@ def test_worker_submit_tracker_stats_and_prune():
 
         # Submit success for existing tracker
         response3 = client.post(
-            "/worker/torrents/abc123/stats",
+            f"/worker/torrents/{VALID_HASH}/stats",
             headers={"X-Worker-Key": "valid-key"},
             json={
                 "tracker_url": "udp://tracker.new:1337",
@@ -277,7 +279,7 @@ def test_worker_submit_tracker_stats_and_prune():
 
         # Submit failure for new tracker
         response4 = client.post(
-            "/worker/torrents/abc123/stats",
+            f"/worker/torrents/{VALID_HASH}/stats",
             headers={"X-Worker-Key": "valid-key"},
             json={"tracker_url": "udp://tracker.fail:1337", "success": False},
         )
@@ -294,7 +296,7 @@ def test_worker_task_fail_success():
     )
     task = TaskDocument(
         _id="task-fail-1",
-        info_hash="abc123456",
+        info_hash=VALID_HASH,
         task_type="scrape_torrent",
         status="claimed",
     )
@@ -315,7 +317,7 @@ def test_worker_task_fail_success():
     assert response.status_code == 200
     data = response.json()
     assert data["status"] == "success"
-    assert data["info_hash"] == "abc123456"
+    assert data["info_hash"] == VALID_HASH
     assert task.status == "failed"
     assert task.error_message == "not implemented"
 

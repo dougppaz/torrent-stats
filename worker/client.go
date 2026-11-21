@@ -21,6 +21,13 @@ type TaskFailureRequest struct {
 	ErrorMessage string `json:"error_message"`
 }
 
+type TrackerStatsSubmit struct {
+	TrackerURL string `json:"tracker_url"`
+	Success    bool   `json:"success"`
+	Seeds      int    `json:"seeds"`
+	Peers      int    `json:"peers"`
+}
+
 type Client struct {
 	APIURL     string
 	WorkerKey  string
@@ -88,6 +95,38 @@ func (c *Client) FailTask(taskID, errorMessage string) error {
 
 	if resp.StatusCode != http.StatusOK {
 		return fmt.Errorf("unexpected status code for fail report: %d", resp.StatusCode)
+	}
+	return nil
+}
+
+func (c *Client) SubmitStats(infoHash, trackerURL string, success bool, seeds, peers int) error {
+	reqURL := fmt.Sprintf("%s/worker/torrents/%s/stats", c.APIURL, infoHash)
+	body := TrackerStatsSubmit{
+		TrackerURL: trackerURL,
+		Success:    success,
+		Seeds:      seeds,
+		Peers:      peers,
+	}
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(body); err != nil {
+		return err
+	}
+
+	req, err := http.NewRequest(http.MethodPost, reqURL, &buf)
+	if err != nil {
+		return err
+	}
+	req.Header.Set("X-Worker-Key", c.WorkerKey)
+	req.Header.Set("Content-Type", "application/json")
+
+	resp, err := c.HTTPClient.Do(req)
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return fmt.Errorf("unexpected status code for stats submission: %d", resp.StatusCode)
 	}
 	return nil
 }
