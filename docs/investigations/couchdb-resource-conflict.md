@@ -111,3 +111,14 @@ Com base nas demandas atuais do sistema, podemos adicionar métodos específicos
   1. **Métodos de update direcionados** nos repositórios.
   2. **Consolidação em uma única escrita** por requisição HTTP no Controller.
   3. **Mecanismo de Retry com Optimistic Locking** (ex: um decorador ou bloco `try/except` que captura `ResourceConflict`, re-busca a nova revisão e tenta novamente até N vezes) no `CouchDBClient` ou `BaseRepository.save`.
+
+---
+
+## 6. Decisão Final da Investigação
+
+Ficou acordado e definido que a estratégia de implementação (a ser executada após confirmação) seguirá os seguintes pilares:
+
+1. **Criação de Métodos de Update Específicos nos Repositórios**: Implementar métodos focados em atualizar campos pontuais utilizando a chave primária (ex: atualização de hits, adição de trackers, atualização de status de tarefas).
+2. **Revisão e Centralização de Persistência**: Remover chamadas diretas de `.save()` nas instâncias de modelos em serviços e controladores, centralizando e encapsulando toda a lógica de persistência e atualização nos repositórios.
+3. **Mecanismo de Retry com Optimistic Locking**: Incorporar uma estratégia de repetição automática (retry) em caso de exceções de `ResourceConflict` do CouchDB, garantindo robustez contra condições de corrida (race conditions) sob concorrência.
+
