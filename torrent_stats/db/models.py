@@ -7,7 +7,7 @@ from pydantic import BaseModel, Field, model_validator
 
 
 class TorrentFile(BaseModel):
-    path: list[str]
+    path: str
     length: int
 
 

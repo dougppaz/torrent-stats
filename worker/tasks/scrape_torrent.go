@@ -17,8 +17,8 @@ type ScrapeClient interface {
 }
 
 type TorrentFilePayload struct {
-	Path   []string `json:"path"`
-	Length int64    `json:"length"`
+	Path   string `json:"path"`
+	Length int64  `json:"length"`
 }
 
 type ScrapeTorrentHandler struct {
@@ -81,10 +81,8 @@ func (h *ScrapeTorrentHandler) Execute(taskID, infoHash string) error {
 
 	var files []TorrentFilePayload
 	for _, f := range t.Files() {
-		fi := f.FileInfo()
-		path := (&fi).BestPath()
 		files = append(files, TorrentFilePayload{
-			Path:   path,
+			Path:   f.Path(),
 			Length: f.Length(),
 		})
 	}

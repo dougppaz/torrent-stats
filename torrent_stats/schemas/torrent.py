@@ -9,7 +9,7 @@ from torrent_stats.schemas.tracker_stat import TrackerStatResponse
 
 
 class TorrentFileResponse(BaseModel):
-    path: list[str]
+    path: str
     length: int
 
 

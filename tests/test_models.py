@@ -7,7 +7,7 @@ from torrent_stats.db.models import (
 
 
 def test_torrent_metadata_model():
-    file_item = TorrentFile(path=["folder", "file.txt"], length=1024)
+    file_item = TorrentFile(path="folder/file.txt", length=1024)
     meta = TorrentMetadata(
         info_hash="abcdef123456", name="Test Torrent", files=[file_item]
     )

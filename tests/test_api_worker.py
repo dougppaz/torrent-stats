@@ -241,7 +241,7 @@ def test_worker_upload_torrent_full():
                 "total_size": 2048,
                 "storage_profile_key": "ftp",
                 "storage_params": '{"custom": "val"}',
-                "files": '[{"path": ["file.txt"], "length": 2048}]',
+                "files": '[{"path": "file.txt", "length": 2048}]',
             },
             files={"torrent_file": ("test.torrent", b"d8:announce...")},
         )

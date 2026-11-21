@@ -55,15 +55,16 @@ New: nothing - modifies worker task execution and storage client calls.
 
 ## Criteria
 
-### S1: Go Worker Torrent Metadata Scraping & Upload (P1)
+### S1: Go Worker Torrent Metadata Scraping & Upload & File Path String (P1)
 
-As a system operator, I want the Go worker to successfully resolve `scrape_torrent` tasks by fetching torrent metadata from the BitTorrent network and uploading the `.torrent` file and file tree to the API.
+As a system operator, I want the Go worker to successfully resolve `scrape_torrent` tasks by fetching torrent metadata from the BitTorrent network and uploading the `.torrent` file and file tree (with file paths as strings) to the API.
 
-**Acceptance Criteria
+**Acceptance Criteria**
 
 1. WHEN the Go worker claims a `scrape_torrent` task THEN the system SHALL construct a magnet link from the info hash, add it to the BitTorrent client, and wait for metadata resolution.
-2. WHEN torrent metadata is successfully resolved THEN the system SHALL extract the torrent name, total size, file tree, and `.torrent` file bytes, and upload them to the API via `POST /worker/torrents` with `info_hash`, `name`, `total_size`, `torrent_file`, and `files`.
+2. WHEN torrent metadata is successfully resolved THEN the system SHALL extract the torrent name, total size, file tree (with each file path formatted as a single string), and `.torrent` file bytes, and upload them to the API via `POST /worker/torrents` with `info_hash`, `name`, `total_size`, `torrent_file`, and `files`.
 3. IF torrent metadata resolution times out or fails due to network/swarm issues THEN the system SHALL report task failure to the API via `POST /worker/tasks/{task_id}/fail`.
+4. WHEN a client requests torrent details via `GET /torrents/{hash}` THEN the system SHALL return each file's `path` as a string (`str`) rather than a list of strings.
 
 ## Out of scope
 
