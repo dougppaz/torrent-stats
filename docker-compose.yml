@@ -10,9 +10,25 @@ services:
       - WORKER_ALLOW_ANY_KEY=true
       - LOG_LEVEL=DEBUG
       - DEFAULT_TRACKERS=udp://tracker.opentrackr.org:1337/announce,udp://open.stealth.si:80/announce,udp://tracker.torrent.eu.org:451/announce
+      - CURRENT_STORAGE_PROFILE=default
+      - STORAGE_PROFILE_DEFAULT_TYPE=local
+      - STORAGE_PROFILE_DEFAULT_TARGET_PATH_TEMPLATE=torrents/{info_hash}.torrent
+      - STORAGE_PROFILE_DEFAULT_DOWNLOAD_URL_TEMPLATE=http://localhost:8080/{target_path}
     depends_on:
       - couchdb
       - redis
+    volumes:
+      - torrents_data:/app/torrents
+
+  nginx:
+    image: nginx:alpine
+    ports:
+      - "8080:80"
+    volumes:
+      - torrents_data:/usr/share/nginx/html/torrents:ro
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+    depends_on:
+      - api
 
   couchdb:
     image: couchdb:3.5
@@ -31,3 +47,4 @@ services:
 
 volumes:
   couchdb_data:
+  torrents_data:
