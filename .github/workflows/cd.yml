@@ -17,6 +17,31 @@ jobs:
         with:
           fetch-depth: 0
 
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: "1.22"
+
+      - name: Build Worker Binaries
+        run: |
+          mkdir -p worker/dist
+          cd worker
+          
+          # Linux amd64
+          GOOS=linux GOARCH=amd64 go build -ldflags="-s -w" -o dist/torrent-stats-worker-linux-amd64 .
+          
+          # Linux arm64
+          GOOS=linux GOARCH=arm64 go build -ldflags="-s -w" -o dist/torrent-stats-worker-linux-arm64 .
+          
+          # Darwin (macOS) amd64
+          GOOS=darwin GOARCH=amd64 go build -ldflags="-s -w" -o dist/torrent-stats-worker-darwin-amd64 .
+          
+          # Darwin (macOS) arm64 (Apple Silicon)
+          GOOS=darwin GOARCH=arm64 go build -ldflags="-s -w" -o dist/torrent-stats-worker-darwin-arm64 .
+          
+          # Windows amd64
+          GOOS=windows GOARCH=amd64 go build -ldflags="-s -w" -o dist/torrent-stats-worker-windows-amd64.exe .
+
       - name: Create a GitHub Release
         uses: ncipollo/release-action@v1
         with:
@@ -24,6 +49,7 @@ jobs:
           generateReleaseNotes: true
           prerelease: ${{ contains(github.ref_name, '-rc') }}
           makeLatest: ${{ !contains(github.ref_name, '-rc') }}
+          artifacts: "worker/dist/torrent-stats-worker-*"
 
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v3
