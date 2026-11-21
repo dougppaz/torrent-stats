@@ -87,6 +87,7 @@ class TrackerStatsController:
         if stat_task:
             stat_task.status = "completed" if success else "failed"
             stat_task.last_attempt_at = now
+            stat_task.updated_at = now
             if success:
                 stat_task.tracker_updated_at = now
             self.task_repo.save(stat_task)

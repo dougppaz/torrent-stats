@@ -117,7 +117,9 @@ class TorrentController:
                     task_id=t.id,
                     status=t.status,
                     tracker_url=t.tracker_url,
-                    updated_at=t.tracker_updated_at,
+                    updated_at=t.updated_at
+                    or t.tracker_updated_at
+                    or t.last_attempt_at,
                     created_at=t.created_at,
                     error_message=t.error_message,
                 )

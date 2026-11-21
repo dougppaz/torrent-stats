@@ -65,6 +65,7 @@ As a system operator, I want the Go worker to successfully resolve `scrape_torre
 2. WHEN torrent metadata is successfully resolved THEN the system SHALL extract the torrent name, total size, file tree (with each file path formatted as a single string), and `.torrent` file bytes, and upload them to the API via `POST /worker/torrents` with `info_hash`, `name`, `total_size`, `torrent_file`, and `files`.
 3. IF torrent metadata resolution times out or fails due to network/swarm issues THEN the system SHALL report task failure to the API via `POST /worker/tasks/{task_id}/fail`.
 4. WHEN a client requests torrent details via `GET /torrents/{hash}` THEN the system SHALL return each file's `path` as a string (`str`) rather than a list of strings.
+5. WHEN a `scrape_torrent` task completes or fails THEN the system SHALL update and return the task's `updated_at` timestamp.
 
 ## Out of scope
 

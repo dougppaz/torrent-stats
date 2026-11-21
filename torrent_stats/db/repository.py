@@ -228,6 +228,8 @@ class TaskRepository(BaseRepository[TaskDocument]):
         if not task:
             return None
         task.status = status
+        now = datetime.now(UTC).isoformat()
+        task.updated_at = now
         if lease_expires_at is not None:
             task.lease_expires_at = lease_expires_at
         if claimed_at is not None:
