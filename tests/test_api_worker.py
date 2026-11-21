@@ -91,6 +91,27 @@ def test_worker_claim_task_success():
     )
     mock_task_repo.find_claimable.return_value = [task]
 
+    def update_mock_task(
+        task_id: str,
+        status: str,
+        lease_expires_at: str | None = None,
+        claimed_at: str | None = None,
+        last_attempt_at: str | None = None,
+        error_message: str | None = None,
+    ) -> TaskDocument:
+        task.status = status
+        if lease_expires_at:
+            task.lease_expires_at = lease_expires_at
+        if claimed_at:
+            task.claimed_at = claimed_at
+        if last_attempt_at:
+            task.last_attempt_at = last_attempt_at
+        if error_message:
+            task.error_message = error_message
+        return task
+
+    mock_task_repo.update_task_status.side_effect = update_mock_task
+
     app.dependency_overrides[get_worker_key_repository] = lambda: mock_worker_key_repo
     app.dependency_overrides[get_task_repository] = lambda: mock_task_repo
 
@@ -143,6 +164,27 @@ def test_worker_claim_task_expired_lease_and_cooldowns():
         tracker_url="udp://tracker:1337",
     )
     mock_task_repo.find_claimable.return_value = [task_expired, task_fresh_stats]
+
+    def update_mock_expired(
+        task_id: str,
+        status: str,
+        lease_expires_at: str | None = None,
+        claimed_at: str | None = None,
+        last_attempt_at: str | None = None,
+        error_message: str | None = None,
+    ) -> TaskDocument:
+        task_expired.status = status
+        if lease_expires_at:
+            task_expired.lease_expires_at = lease_expires_at
+        if claimed_at:
+            task_expired.claimed_at = claimed_at
+        if last_attempt_at:
+            task_expired.last_attempt_at = last_attempt_at
+        if error_message:
+            task_expired.error_message = error_message
+        return task_expired
+
+    mock_task_repo.update_task_status.side_effect = update_mock_expired
 
     app.dependency_overrides[get_worker_key_repository] = lambda: mock_worker_key_repo
     app.dependency_overrides[get_task_repository] = lambda: mock_task_repo
@@ -301,6 +343,27 @@ def test_worker_task_fail_success():
         status="claimed",
     )
     mock_task_repo.get.return_value = task
+
+    def update_mock_fail(
+        task_id: str,
+        status: str,
+        lease_expires_at: str | None = None,
+        claimed_at: str | None = None,
+        last_attempt_at: str | None = None,
+        error_message: str | None = None,
+    ) -> TaskDocument:
+        task.status = status
+        if lease_expires_at:
+            task.lease_expires_at = lease_expires_at
+        if claimed_at:
+            task.claimed_at = claimed_at
+        if last_attempt_at:
+            task.last_attempt_at = last_attempt_at
+        if error_message:
+            task.error_message = error_message
+        return task
+
+    mock_task_repo.update_task_status.side_effect = update_mock_fail
 
     app.dependency_overrides[get_worker_key_repository] = lambda: mock_worker_key_repo
     app.dependency_overrides[get_task_repository] = lambda: mock_task_repo

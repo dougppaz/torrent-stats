@@ -26,7 +26,7 @@ def test_hit_counter_service_existing(mock_repo_cls, mock_redis_cls):
     assert last_hit_at is not None
     mock_pipe.incr.assert_called_once()
     mock_pipe.execute.assert_called_once()
-    mock_repo.save.assert_called()
+    mock_repo.update_hits.assert_called_once()
 
 
 @patch("torrent_stats.services.hit_counter.redis.Redis")
@@ -47,4 +47,4 @@ def test_hit_counter_service_new(mock_repo_cls, mock_redis_cls):
 
     assert total_hits == 1
     assert last_hit_at is not None
-    mock_repo.save.assert_called()
+    mock_repo.update_hits.assert_called_once()

@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from unittest.mock import MagicMock
+from unittest.mock import MagicMock, patch
 
 from torrent_stats.db.repository import (
     TaskRepository,
@@ -122,3 +122,57 @@ def test_task_repository_find_claimable_fallback():
     tasks = repo.find_claimable()
     assert len(tasks) == 1
     assert tasks[0].id == "t1"
+
+
+def test_torrent_metadata_update_hits():
+    mock_client = MagicMock()
+    repo = TorrentMetadataRepository(client=mock_client)
+    # Exists
+    mock_client.get_doc.return_value = {
+        "_id": "hash1",
+        "info_hash": "hash1",
+        "total_hits": 2,
+    }
+    mock_client.save_doc.return_value = {"id": "hash1", "rev": "2-rev"}
+    updated = repo.update_hits("hash1", 10, "2026-01-01T00:00:00Z")
+    assert updated.total_hits == 10
+
+    # Does not exist
+    mock_client.get_doc.return_value = None
+    created = repo.update_hits("hash2", 5, "2026-01-01T00:00:00Z")
+    assert created.total_hits == 5
+
+
+def test_torrent_metadata_add_tracker_stats():
+    mock_client = MagicMock()
+    repo = TorrentMetadataRepository(client=mock_client)
+    # Exists with one tracker
+    mock_client.get_doc.return_value = {
+        "_id": "hash1",
+        "info_hash": "hash1",
+        "tracker_stats": [
+            {"tracker_url": "udp://tracker1.com", "seeds": 10, "peers": 5}
+        ],
+    }
+    mock_client.save_doc.return_value = {"id": "hash1", "rev": "2-rev"}
+    res = repo.add_tracker_stats("hash1", ["udp://tracker1.com", "udp://tracker2.com"])
+    assert len(res.tracker_stats) == 2
+
+
+def test_couchdb_client_save_doc_retry():
+    import couchdb
+    from torrent_stats.db.client import CouchDBClient
+
+    mock_server = MagicMock()
+    mock_db = MagicMock()
+    mock_server.__getitem__.return_value = mock_db
+    with patch("couchdb.Server", return_value=mock_server):
+        client = CouchDBClient(db_name="testdb")
+        mock_db.get.return_value = {"_id": "doc1", "_rev": "1-rev"}
+        mock_db.save.side_effect = [
+            couchdb.http.ResourceConflict("conflict"),
+            ("doc1", "2-rev"),
+        ]
+        res = client.save_doc({"_id": "doc1", "data": "test"})
+        assert res["ok"] is True
+        assert res["rev"] == "2-rev"

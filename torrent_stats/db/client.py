@@ -27,24 +27,31 @@ class CouchDBClient:
             return dict(doc)
         return None
 
-    def save_doc(self, doc: dict[str, Any]) -> dict[str, Any]:
+    def save_doc(self, doc: dict[str, Any], max_retries: int = 3) -> dict[str, Any]:
         db = self.get_db()
         doc_id = doc.get("_id") or doc.get("id")
         if doc_id and "_id" not in doc:
             doc["_id"] = doc_id
 
-        if "_rev" in doc and not doc["_rev"]:
-            del doc["_rev"]
+        for attempt in range(max_retries):
+            try:
+                if "_rev" in doc and not doc["_rev"]:
+                    del doc["_rev"]
 
-        if doc.get("_id") and doc["_id"] in db:
-            existing = db.get(doc["_id"])
-            if existing and "_rev" in existing:
-                doc["_rev"] = existing["_rev"]
-            doc_id_saved, rev = db.save(doc)
-            return {"id": doc_id_saved, "rev": rev, "ok": True}
-        else:
-            doc_id_saved, rev = db.save(doc)
-            return {"id": doc_id_saved, "rev": rev, "ok": True}
+                if doc.get("_id") and doc["_id"] in db:
+                    existing = db.get(doc["_id"])
+                    if existing and "_rev" in existing:
+                        doc["_rev"] = existing["_rev"]
+                    doc_id_saved, rev = db.save(doc)
+                    return {"id": doc_id_saved, "rev": rev, "ok": True}
+                else:
+                    doc_id_saved, rev = db.save(doc)
+                    return {"id": doc_id_saved, "rev": rev, "ok": True}
+            except couchdb.http.ResourceConflict:
+                if attempt == max_retries - 1:
+                    raise
+                continue
+        raise couchdb.http.ResourceConflict("Max retries reached for save_doc conflict")
 
     def find_by_selector(self, selector: dict[str, Any]) -> list[dict[str, Any]]:
         db = self.get_db()

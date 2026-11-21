@@ -7,7 +7,12 @@ from typing import Generic, TypeVar
 from pydantic import BaseModel
 from torrent_stats.db.client import CouchDBClient
 from torrent_stats.db.crypto import hash_worker_key
-from torrent_stats.db.models import TaskDocument, TorrentMetadata, WorkerKey
+from torrent_stats.db.models import (
+    TaskDocument,
+    TorrentMetadata,
+    TrackerStat,
+    WorkerKey,
+)
 
 T = TypeVar("T", bound=BaseModel)
 logger = logging.getLogger(__name__)
@@ -67,6 +72,47 @@ class TorrentMetadataRepository(BaseRepository[TorrentMetadata]):
             )
             saved = self.save(torrent)
             return saved, True
+
+    def update_hits(
+        self, info_hash: str, total_hits: int, last_hit_at: str
+    ) -> TorrentMetadata:
+        torrent = self.find_by_info_hash(info_hash)
+        if torrent:
+            torrent.total_hits = total_hits
+            torrent.last_hit_at = last_hit_at
+            return self.save(torrent)
+        else:
+            torrent = TorrentMetadata(
+                info_hash=info_hash,
+                total_hits=total_hits,
+                last_hit_at=last_hit_at,
+            )
+            return self.save(torrent)
+
+    def add_tracker_stats(
+        self, info_hash: str, tracker_urls: list[str]
+    ) -> TorrentMetadata:
+        torrent = self.find_by_info_hash(info_hash)
+        if not torrent:
+            torrent = TorrentMetadata(info_hash=info_hash)
+
+        existing_urls = {ts.tracker_url for ts in torrent.tracker_stats}
+        added = False
+        for tr in tracker_urls:
+            if tr not in existing_urls:
+                torrent.tracker_stats.append(
+                    TrackerStat(
+                        tracker_url=tr,
+                        seeds=None,
+                        peers=None,
+                        updated_at=None,
+                    )
+                )
+                existing_urls.add(tr)
+                added = True
+        if added or not torrent.total_hits:
+            return self.save(torrent)
+        return torrent
 
 
 class WorkerKeyRepository(BaseRepository[WorkerKey]):
@@ -168,3 +214,26 @@ class TaskRepository(BaseRepository[TaskDocument]):
             db = self.client.get_db()
             all_docs = [db.get(doc_id) for doc_id in db if not doc_id.startswith("_")]
             return [TaskDocument.model_validate(d) for d in all_docs if d is not None]
+
+    def update_task_status(
+        self,
+        task_id: str,
+        status: str,
+        lease_expires_at: str | None = None,
+        claimed_at: str | None = None,
+        last_attempt_at: str | None = None,
+        error_message: str | None = None,
+    ) -> TaskDocument | None:
+        task = self.get(task_id)
+        if not task:
+            return None
+        task.status = status
+        if lease_expires_at is not None:
+            task.lease_expires_at = lease_expires_at
+        if claimed_at is not None:
+            task.claimed_at = claimed_at
+        if last_attempt_at is not None:
+            task.last_attempt_at = last_attempt_at
+        if error_message is not None:
+            task.error_message = error_message
+        return self.save(task)

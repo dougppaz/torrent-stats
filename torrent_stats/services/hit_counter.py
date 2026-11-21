@@ -4,7 +4,6 @@ from datetime import UTC, datetime, timedelta
 
 import redis
 from torrent_stats.db.client import CouchDBClient
-from torrent_stats.db.models import TorrentMetadata
 from torrent_stats.db.repository import TorrentMetadataRepository
 from torrent_stats.settings import couchdb_settings, redis_settings
 
@@ -40,17 +39,6 @@ class HitCounterService:
         last_hit_at = now.isoformat()
 
         # Sync to CouchDB metadata if exists
-        torrent = self.torrent_repo.find_by_info_hash(info_hash)
-        if torrent:
-            torrent.total_hits = total_hits
-            torrent.last_hit_at = last_hit_at
-            self.torrent_repo.save(torrent)
-        else:
-            new_torrent = TorrentMetadata(
-                info_hash=info_hash,
-                total_hits=total_hits,
-                last_hit_at=last_hit_at,
-            )
-            self.torrent_repo.save(new_torrent)
+        self.torrent_repo.update_hits(info_hash, total_hits, last_hit_at)
 
         return total_hits, last_hit_at
