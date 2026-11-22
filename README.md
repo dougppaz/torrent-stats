@@ -59,10 +59,14 @@ If running CouchDB independently or via Docker Compose for the first time, you c
 
 ### Running the Worker (`worker/`)
 
-1. Build the Go worker binary:
+1. Build the Go worker binary (use `GOAMD64=v1` for maximum compatibility with older x86_64 CPUs, or `GOAMD64=v2` for optimized x86-64-v2 instructions):
    ```bash
    cd worker
-   go build -o torrent-stats-worker .
+   # For maximum compatibility (v1)
+   GOAMD64=v1 go build -o torrent-stats-worker .
+   
+   # Or for v2 optimized instruction set
+   GOAMD64=v2 go build -o torrent-stats-worker .
    ```
 
 2. Run the worker binary (either via environment variables or command-line arguments, with arguments taking precedence):
