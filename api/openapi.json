@@ -501,6 +501,10 @@
             "type": "string",
             "title": "Task Id"
           },
+          "task_type": {
+            "type": "string",
+            "title": "Task Type"
+          },
           "status": {
             "type": "string",
             "title": "Status"
@@ -553,6 +557,7 @@
         "type": "object",
         "required": [
           "task_id",
+          "task_type",
           "status"
         ],
         "title": "TaskResponse"
