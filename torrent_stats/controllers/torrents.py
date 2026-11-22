@@ -129,7 +129,7 @@ class TorrentController:
                         ref_dt = datetime.fromisoformat(ref_ts)
                         if (
                             (now - ref_dt).total_seconds()
-                            < worker_settings.worker_stats_cooldown_seconds
+                            < worker_settings.worker_scrape_stats_cooldown_seconds
                         ):
                             should_renew = False
                     except (ValueError, TypeError):

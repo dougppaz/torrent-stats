@@ -88,9 +88,9 @@ The API service can be configured using the following environment variables (or 
 | `COUCHDB_URL` | `http://admin:admin@localhost:5984/` | CouchDB connection URL |
 | `COUCHDB_DB_NAME` | `torrent_stats` | CouchDB database name |
 | `REDIS_URL` | `redis://localhost:6379/0` | Redis connection URL |
-| `WORKER_SCRAPE_STATS_FAILURE_COOLDOWN_SECONDS` | `43200` (12 hours) | Failure cooldown before retrying a failed tracker stats scrape task |
+| `WORKER_SCRAPE_STATS_FAILURE_COOLDOWN_SECONDS` | `10800` (3 hours) | Failure cooldown before retrying a failed tracker stats scrape task |
 | `WORKER_SCRAPE_TORRENT_FAILURE_COOLDOWN_SECONDS` | `3600` (1 hour) | Failure cooldown before retrying a failed torrent scrape task |
-| `WORKER_STATS_COOLDOWN_SECONDS` | `1800` (30 minutes) | Update cooldown before re-scraping tracker stats |
+| `WORKER_SCRAPE_STATS_COOLDOWN_SECONDS` | `1800` (30 minutes) | Update cooldown before re-scraping tracker stats |
 | `WORKER_TASK_LEASE_SECONDS` | `300` (5 minutes) | Task lease/ACK timeout for active workers |
 | `WORKER_KEY_SALT` | `change-this-salt-in-production` | Salt used for secure HMAC-SHA256 hashing of worker API keys |
 | `CURRENT_STORAGE_PROFILE` | `default` | Active storage profile key to use for uploads |

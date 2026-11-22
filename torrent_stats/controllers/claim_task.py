@@ -53,8 +53,9 @@ class TaskClaimController:
             ):
                 tracker_updated = datetime.fromisoformat(task.tracker_updated_at)
                 if (
-                    now - tracker_updated
-                ).total_seconds() < self.worker_settings.worker_stats_cooldown_seconds:
+                    (now - tracker_updated).total_seconds()
+                    < self.worker_settings.worker_scrape_stats_cooldown_seconds
+                ):
                     logger.debug(
                         "Task %s skipped: stats update cooldown active for tracker %s.",
                         task.id,
