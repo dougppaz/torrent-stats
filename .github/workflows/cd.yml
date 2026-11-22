@@ -30,6 +30,9 @@ jobs:
           # Linux amd64 (targeting v1 for maximum CPU compatibility on older servers)
           GOOS=linux GOARCH=amd64 GOAMD64=v1 go build -ldflags="-s -w" -o dist/torrent-stats-worker-linux-amd64 .
           
+          # Linux amd64 (targeting v2 for optimized instruction set on modern x86_64 CPUs)
+          GOOS=linux GOARCH=amd64 GOAMD64=v2 go build -ldflags="-s -w" -o dist/torrent-stats-worker-linux-amd64-v2 .
+          
           # Linux arm64
           GOOS=linux GOARCH=arm64 go build -ldflags="-s -w" -o dist/torrent-stats-worker-linux-arm64 .
           
