@@ -47,6 +47,14 @@ class BaseRepository(Generic[T]):
         res: T = self.model_class.model_validate(data)
         return res
 
+    def delete(self, doc_id: str) -> bool:
+        db = self.client.get_db()
+        doc = db.get(doc_id)
+        if doc:
+            db.delete(doc)
+            return True
+        return False
+
 
 class TorrentMetadataRepository(BaseRepository[TorrentMetadata]):
     def __init__(self, client: CouchDBClient) -> None:

@@ -176,3 +176,23 @@ def test_couchdb_client_save_doc_retry():
         res = client.save_doc({"_id": "doc1", "data": "test"})
         assert res["ok"] is True
         assert res["rev"] == "2-rev"
+
+
+def test_base_repository_delete():
+    from pydantic import BaseModel
+    from torrent_stats.db.repository import BaseRepository
+
+    mock_client = MagicMock()
+    mock_db = MagicMock()
+    mock_client.get_db.return_value = mock_db
+    mock_db.get.return_value = {"_id": "doc1"}
+
+    class DummyModel(BaseModel):
+        id: str = "doc1"
+
+    repo = BaseRepository(DummyModel, client=mock_client)
+    assert repo.delete("doc1") is True
+    mock_db.delete.assert_called_once()
+
+    mock_db.get.return_value = None
+    assert repo.delete("notfound") is False

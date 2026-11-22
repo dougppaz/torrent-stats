@@ -3,7 +3,7 @@ from __future__ import annotations
 from unittest.mock import patch
 
 from fastapi.testclient import TestClient
-from torrent_stats.db.models import TaskDocument, TorrentMetadata
+from torrent_stats.db.models import TaskDocument, TorrentMetadata, TrackerStat
 from torrent_stats.interfaces.api.depends import (
     get_hit_counter_service,
     get_storage_manager,
@@ -169,3 +169,159 @@ def test_get_torrent_task_error_message():
 def test_get_torrent_invalid_info_hash():
     response = client.get("/torrents/short")
     assert response.status_code == 422
+
+
+def test_get_torrent_renew_failed_scrape_torrent_cooldown_expired():
+    from datetime import UTC, datetime, timedelta
+
+    mock_repo = MagicMock = __import__("unittest.mock").mock.MagicMock()
+    mock_task_repo = MagicMock()
+    mock_hit_counter = MagicMock()
+    mock_storage = MagicMock()
+
+    mock_hit_counter.record_hit.return_value = (1, "2026-11-07T00:00:00Z")
+    meta = TorrentMetadata(info_hash=VALID_HASH, total_hits=1)
+    mock_repo.get_or_create.return_value = (meta, False)
+
+    past = (datetime.now(UTC) - timedelta(hours=15)).isoformat()
+    old_task = TaskDocument(
+        _id="task-old",
+        info_hash=VALID_HASH,
+        task_type="scrape_torrent",
+        status="failed",
+        last_attempt_at=past,
+    )
+    mock_task_repo.find_by_info_hash.return_value = [old_task]
+
+    app.dependency_overrides[get_torrent_repository] = lambda: mock_repo
+    app.dependency_overrides[get_task_repository] = lambda: mock_task_repo
+    app.dependency_overrides[get_hit_counter_service] = lambda: mock_hit_counter
+    app.dependency_overrides[get_storage_manager] = lambda: mock_storage
+
+    try:
+        response = client.get(f"/torrents/{VALID_HASH}")
+    finally:
+        app.dependency_overrides.clear()
+
+    assert response.status_code == 200
+    mock_task_repo.delete.assert_called_once_with("task-old")
+    mock_task_repo.save.assert_called()
+
+
+def test_get_torrent_no_renew_failed_scrape_torrent_cooldown_active():
+    from datetime import UTC, datetime, timedelta
+
+    mock_repo = __import__("unittest.mock").mock.MagicMock()
+    mock_task_repo = __import__("unittest.mock").mock.MagicMock()
+    mock_hit_counter = __import__("unittest.mock").mock.MagicMock()
+    mock_storage = __import__("unittest.mock").mock.MagicMock()
+
+    mock_hit_counter.record_hit.return_value = (1, "2026-11-07T00:00:00Z")
+    meta = TorrentMetadata(info_hash=VALID_HASH, total_hits=1)
+    mock_repo.get_or_create.return_value = (meta, False)
+
+    recent = (datetime.now(UTC) - timedelta(minutes=10)).isoformat()
+    old_task = TaskDocument(
+        _id="task-old",
+        info_hash=VALID_HASH,
+        task_type="scrape_torrent",
+        status="failed",
+        last_attempt_at=recent,
+    )
+    mock_task_repo.find_by_info_hash.return_value = [old_task]
+
+    app.dependency_overrides[get_torrent_repository] = lambda: mock_repo
+    app.dependency_overrides[get_task_repository] = lambda: mock_task_repo
+    app.dependency_overrides[get_hit_counter_service] = lambda: mock_hit_counter
+    app.dependency_overrides[get_storage_manager] = lambda: mock_storage
+
+    try:
+        response = client.get(f"/torrents/{VALID_HASH}")
+    finally:
+        app.dependency_overrides.clear()
+
+    assert response.status_code == 200
+    mock_task_repo.delete.assert_not_called()
+
+
+def test_get_torrent_no_renew_completed_scrape_torrent():
+    from datetime import UTC, datetime, timedelta
+
+    mock_repo = __import__("unittest.mock").mock.MagicMock()
+    mock_task_repo = __import__("unittest.mock").mock.MagicMock()
+    mock_hit_counter = __import__("unittest.mock").mock.MagicMock()
+    mock_storage = __import__("unittest.mock").mock.MagicMock()
+
+    mock_hit_counter.record_hit.return_value = (1, "2026-11-07T00:00:00Z")
+    meta = TorrentMetadata(info_hash=VALID_HASH, total_hits=1)
+    mock_repo.get_or_create.return_value = (meta, False)
+
+    past = (datetime.now(UTC) - timedelta(hours=20)).isoformat()
+    completed_task = TaskDocument(
+        _id="task-completed",
+        info_hash=VALID_HASH,
+        task_type="scrape_torrent",
+        status="completed",
+        last_attempt_at=past,
+    )
+    mock_task_repo.find_by_info_hash.return_value = [completed_task]
+
+    app.dependency_overrides[get_torrent_repository] = lambda: mock_repo
+    app.dependency_overrides[get_task_repository] = lambda: mock_task_repo
+    app.dependency_overrides[get_hit_counter_service] = lambda: mock_hit_counter
+    app.dependency_overrides[get_storage_manager] = lambda: mock_storage
+
+    try:
+        response = client.get(f"/torrents/{VALID_HASH}")
+    finally:
+        app.dependency_overrides.clear()
+
+    assert response.status_code == 200
+    mock_task_repo.delete.assert_not_called()
+
+
+def test_get_torrent_renew_scrape_stats_cooldown_expired():
+    from datetime import UTC, datetime, timedelta
+
+    mock_repo = __import__("unittest.mock").mock.MagicMock()
+    mock_task_repo = __import__("unittest.mock").mock.MagicMock()
+    mock_hit_counter = __import__("unittest.mock").mock.MagicMock()
+    mock_storage = __import__("unittest.mock").mock.MagicMock()
+
+    mock_hit_counter.record_hit.return_value = (1, "2026-11-07T00:00:00Z")
+    meta = TorrentMetadata(
+        info_hash=VALID_HASH,
+        total_hits=1,
+        tracker_stats=[TrackerStat(tracker_url="udp://tracker:1337", seeds=1, peers=1)],
+    )
+    mock_repo.get_or_create.return_value = (meta, False)
+
+    past = (datetime.now(UTC) - timedelta(hours=7)).isoformat()
+    stats_task = TaskDocument(
+        _id="task-stats",
+        info_hash=VALID_HASH,
+        task_type="scrape_stats",
+        status="completed",
+        tracker_url="udp://tracker:1337",
+        tracker_updated_at=past,
+    )
+    torrent_scrape = TaskDocument(
+        _id="task-scrape",
+        info_hash=VALID_HASH,
+        task_type="scrape_torrent",
+        status="completed",
+    )
+    mock_task_repo.find_by_info_hash.return_value = [torrent_scrape, stats_task]
+
+    app.dependency_overrides[get_torrent_repository] = lambda: mock_repo
+    app.dependency_overrides[get_task_repository] = lambda: mock_task_repo
+    app.dependency_overrides[get_hit_counter_service] = lambda: mock_hit_counter
+    app.dependency_overrides[get_storage_manager] = lambda: mock_storage
+
+    try:
+        response = client.get(f"/torrents/{VALID_HASH}")
+    finally:
+        app.dependency_overrides.clear()
+
+    assert response.status_code == 200
+    mock_task_repo.delete.assert_called_with("task-stats")
