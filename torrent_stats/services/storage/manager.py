@@ -5,12 +5,15 @@ from typing import Any
 from torrent_stats.services.storage.base import BaseStorage
 from torrent_stats.services.storage.ftp import FTPStorage
 from torrent_stats.services.storage.local import LocalStorage
+from torrent_stats.services.storage.s3 import S3Storage
 from torrent_stats.settings import StorageProfileConfig, storage_profiles_settings
 
 STORAGE_REGISTRY: dict[str, type[BaseStorage]] = {
     "ftp": FTPStorage,
     "local": LocalStorage,
     "file": LocalStorage,
+    "s3": S3Storage,
+    "s3fs": S3Storage,
 }
 
 

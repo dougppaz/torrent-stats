@@ -95,6 +95,36 @@ The API service can be configured using the following environment variables (or 
 | `CURRENT_STORAGE_PROFILE` | `default` | Active storage profile key to use for uploads |
 | `STORAGE_PROFILE_[KEY]_[PARAM]` | *none* | Dynamic storage profile configuration (e.g., `STORAGE_PROFILE_LOCAL_TYPE=local`, `STORAGE_PROFILE_LOCAL_TARGET_PATH_TEMPLATE=.torrents/{info_hash}.torrent`) |
 
+### Storage Profiles Configuration
+
+Storage backends (`local`, `ftp`, `s3` / `s3fs`) are managed via `fsspec` and configured via environment variables:
+
+- **Local Storage**:
+  ```env
+  STORAGE_PROFILE_DEFAULT_TYPE=local
+  STORAGE_PROFILE_DEFAULT_TARGET_PATH_TEMPLATE=.torrents/{info_hash}.torrent
+  ```
+- **FTP Storage**:
+  ```env
+  STORAGE_PROFILE_FTP_TYPE=ftp
+  STORAGE_PROFILE_FTP_HOST=ftp.example.com
+  STORAGE_PROFILE_FTP_USERNAME=user
+  STORAGE_PROFILE_FTP_PASSWORD=pass
+  STORAGE_PROFILE_FTP_TARGET_PATH_TEMPLATE=/torrents/{info_hash}.torrent
+  STORAGE_PROFILE_FTP_DOWNLOAD_URL_TEMPLATE=ftp://user:pass@ftp.example.com/torrents/{info_hash}.torrent
+  ```
+- **S3 / S3-compatible Storage (AWS S3, MinIO, LocalStack)**:
+  ```env
+  STORAGE_PROFILE_S3_TYPE=s3
+  STORAGE_PROFILE_S3_BUCKET=my-torrent-bucket
+  STORAGE_PROFILE_S3_KEY=your-aws-access-key
+  STORAGE_PROFILE_S3_SECRET=your-aws-secret-key
+  STORAGE_PROFILE_S3_ENDPOINT_URL=https://s3.amazonaws.com # or http://localhost:9000 for MinIO
+  STORAGE_PROFILE_S3_REGION_NAME=us-east-1
+  STORAGE_PROFILE_S3_TARGET_PATH_TEMPLATE={bucket}/torrents/{info_hash}.torrent
+  STORAGE_PROFILE_S3_DOWNLOAD_URL_TEMPLATE=https://{bucket}.s3.amazonaws.com/{target_path}
+  ```
+
 ### Worker Configuration (`worker/`)
 
 The remote worker can be configured using environment variables or command-line arguments (where terminal arguments take priority over environment variables):
