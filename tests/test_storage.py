@@ -87,3 +87,102 @@ def test_storage_manager_unsupported_type(mock_storage_settings):
     manager = StorageManager()
     with pytest.raises(ValueError, match="Unsupported storage profile type"):
         manager.upload_torrent("hash", b"content")
+
+
+@patch("torrent_stats.services.storage.s3.fsspec.filesystem")
+@patch("torrent_stats.services.storage.manager.storage_profiles_settings")
+def test_storage_manager_s3(mock_storage_settings, mock_fsspec_filesystem):
+    mock_fs = mock_fsspec_filesystem.return_value
+    mock_file = mock_fs.open.return_value.__enter__.return_value
+
+    mock_storage_settings.current_storage_profile = "s3_profile"
+    mock_storage_settings.profiles = {
+        "s3_profile": StorageProfileConfig(
+            type="s3",
+            config={
+                "bucket": "my-bucket",
+                "key": "test-key",
+                "secret": "test-secret",
+                "endpoint_url": "http://localhost:9000",
+                "target_path_template": "{bucket}/torrents/{info_hash}.torrent",
+                "download_url_template": "https://s3.amazonaws.com/{bucket}/{target_path}",
+            },
+        )
+    }
+
+    manager = StorageManager()
+    profile_key, storage_params, download_url = manager.upload_torrent(
+        "abc123hash", b"torrent-content"
+    )
+
+    assert profile_key == "s3_profile"
+    assert storage_params == {
+        "bucket": "my-bucket",
+        "target_path": "torrents/abc123hash.torrent",
+        "full_path": "my-bucket/torrents/abc123hash.torrent",
+    }
+    assert (
+        download_url == "https://s3.amazonaws.com/my-bucket/torrents/abc123hash.torrent"
+    )
+    mock_fsspec_filesystem.assert_called_once_with(
+        "s3",
+        key="test-key",
+        secret="test-secret",
+        endpoint_url="http://localhost:9000",
+    )
+    mock_fs.open.assert_called_once_with("my-bucket/torrents/abc123hash.torrent", "wb")
+    mock_file.write.assert_called_once_with(b"torrent-content")
+
+    # Test get_download_url
+    url = manager.get_download_url(profile_key, storage_params)
+    assert url == "https://s3.amazonaws.com/my-bucket/torrents/abc123hash.torrent"
+
+
+@patch("torrent_stats.services.storage.s3.fsspec.filesystem")
+@patch("torrent_stats.services.storage.manager.storage_profiles_settings")
+def test_storage_manager_s3_missing_download_template(
+    mock_storage_settings, mock_fsspec_filesystem
+):
+    mock_storage_settings.current_storage_profile = "s3_profile"
+    mock_storage_settings.profiles = {
+        "s3_profile": StorageProfileConfig(
+            type="s3fs",
+            config={
+                "bucket": "my-bucket",
+            },
+        )
+    }
+
+    manager = StorageManager()
+    with pytest.raises(ValueError, match="missing 'download_url_template'"):
+        manager.upload_torrent("abc123hash", b"torrent-content")
+
+    # Test get_download_url missing target_path
+    _, handler = manager.get_storage_handler("s3_profile")
+    with pytest.raises(ValueError, match="missing 'target_path'"):
+        handler.get_download_url({})
+
+
+@patch("torrent_stats.services.storage.s3.fsspec.filesystem")
+@patch("torrent_stats.services.storage.manager.storage_profiles_settings")
+def test_storage_manager_s3_with_region(mock_storage_settings, mock_fsspec_filesystem):
+    mock_storage_settings.current_storage_profile = "s3_profile"
+    mock_storage_settings.profiles = {
+        "s3_profile": StorageProfileConfig(
+            type="s3",
+            config={
+                "bucket": "my-bucket",
+                "region_name": "garage",
+                "target_path_template": "{bucket}/torrents/{info_hash}.torrent",
+                "download_url_template": "https://s3-api.example.com/{bucket}/{target_path}",
+            },
+        )
+    }
+
+    manager = StorageManager()
+    manager.upload_torrent("abc123hash", b"torrent-content")
+
+    mock_fsspec_filesystem.assert_called_once_with(
+        "s3",
+        client_kwargs={"region_name": "garage"},
+    )

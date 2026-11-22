@@ -53,6 +53,6 @@ The API service is built using FastAPI and follows a clean 3-tier layering patte
 
 ## Agnostic Storage Profiles
 
-- Managed via `fsspec` backends (FTP first, local storage default).
+- Managed via `fsspec` backends (`local`, `ftp`, `s3` / `s3fs`).
 - Stores `storage_profile_key` and `storage_params` dictionary on `TorrentMetadata`.
 - Generates public download URLs dynamically via profile templates.

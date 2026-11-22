@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "torrent-stats"
-version = "1.1.0-rc0"
+version = "1.1.0-rc6"
 description = "Resolving info hashes into .torrent files, detailed file trees, and live peer/seed stats across trackers."
 authors = ["Douglas Paz <eu@douglaspaz.com>"]
 readme = "README.md"
@@ -17,6 +17,7 @@ httpx = ">=0.28.1"
 fsspec = ">=2025.3.0"
 couchdb = ">=1.2"
 python-multipart = "^0.0.33"
+s3fs = "^2026.9.0"
 
 [tool.poetry.group.dev.dependencies]
 ruff = ">=0.3.0"
