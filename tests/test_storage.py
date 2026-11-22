@@ -123,7 +123,6 @@ def test_storage_manager_s3(mock_storage_settings, mock_fsspec_filesystem):
     )
     mock_fsspec_filesystem.assert_called_once_with(
         "s3",
-        bucket="my-bucket",
         key="test-key",
         secret="test-secret",
         endpoint_url="http://localhost:9000",

@@ -13,6 +13,7 @@ class S3Storage(BaseStorage):
         fs_config = profile.config.copy()
         fs_config.pop("download_url_template", None)
         fs_config.pop("target_path_template", None)
+        fs_config.pop("bucket", None)
         self.fs = fsspec.filesystem("s3", **fs_config)
 
     def upload(self, info_hash: str, file_bytes: bytes) -> dict[str, Any]:
