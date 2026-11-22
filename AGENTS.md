@@ -26,4 +26,5 @@ Instructions for coding agents working on **torrent-stats**.
 
 
 - **Specifications are binding**: Feature shape and acceptance criteria live in `.specs/features/core-resolution/plan.md` (Approved: `user: "yes"`). API contracts live in `api/openapi.json`.
+- **Settings & Documentation**: Any addition or modification of configuration parameters in `settings.py` must be immediately reflected in `README.md` under Environment Variables.
 - **Atomic implementation**: Build strictly slice by slice. Verify every check against the plan.

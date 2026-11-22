@@ -22,7 +22,7 @@ def test_settings_initialization():
     assert "redis" in redis_s.redis_url
 
     worker_s = WorkerSettings()
-    assert worker_s.worker_failure_cooldown_seconds == 43200
+    assert worker_s.worker_scrape_stats_failure_cooldown_seconds == 43200
     assert worker_s.worker_scrape_torrent_failure_cooldown_seconds == 3600
     assert worker_s.worker_stats_cooldown_seconds == 1800
 

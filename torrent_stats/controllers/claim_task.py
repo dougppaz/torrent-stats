@@ -29,13 +29,15 @@ class TaskClaimController:
 
         candidates: list[TaskDocument] = []
         for task in all_tasks:
-            # Check failure cooldown (12h)
+            # Check failure cooldown
             if task.last_attempt_at and task.status == "failed":
                 last_attempt = datetime.fromisoformat(task.last_attempt_at)
-                if (
-                    (now - last_attempt).total_seconds()
-                    < self.worker_settings.worker_failure_cooldown_seconds
-                ):
+                cooldown_seconds = (
+                    self.worker_settings.worker_scrape_torrent_failure_cooldown_seconds
+                    if task.task_type == "scrape_torrent"
+                    else self.worker_settings.worker_scrape_stats_failure_cooldown_seconds
+                )
+                if (now - last_attempt).total_seconds() < cooldown_seconds:
                     logger.debug(
                         "Task %s skipped: failure cooldown active (last attempt at %s).",
                         task.id,

@@ -30,7 +30,7 @@ class RedisSettings(BaseSettings):
 
 
 class WorkerSettings(BaseSettings):
-    worker_failure_cooldown_seconds: int = 12 * 3600
+    worker_scrape_stats_failure_cooldown_seconds: int = 12 * 3600
     worker_scrape_torrent_failure_cooldown_seconds: int = 3600
     worker_stats_cooldown_seconds: int = 30 * 60
     worker_task_lease_seconds: int = 300
