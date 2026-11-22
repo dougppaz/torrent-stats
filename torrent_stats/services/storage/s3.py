@@ -27,13 +27,24 @@ class S3Storage(BaseStorage):
         self.fs = fsspec.filesystem("s3", **fs_config)
 
     def upload(self, info_hash: str, file_bytes: bytes) -> dict[str, Any]:
+        bucket = self.profile.config.get("bucket")
         template = self.profile.config.get(
-            "target_path_template", ".torrents/{info_hash}.torrent"
+            "target_path_template", "torrents/{info_hash}.torrent"
         )
         target_path = str(template).format(info_hash=info_hash, **self.profile.config)
-        with self.fs.open(target_path, "wb") as f:
+
+        if bucket and target_path.startswith(f"{bucket}/"):
+            target_path = target_path[len(bucket) + 1 :]
+
+        full_path = f"{bucket}/{target_path}" if bucket else target_path
+
+        with self.fs.open(full_path, "wb") as f:
             f.write(file_bytes)
-        return {"target_path": target_path}
+        return {
+            "bucket": bucket,
+            "target_path": target_path,
+            "full_path": full_path,
+        }
 
     def get_download_url(self, storage_params: dict[str, Any]) -> str:
         target_path = storage_params.get("target_path")

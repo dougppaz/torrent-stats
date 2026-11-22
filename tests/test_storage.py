@@ -116,10 +116,13 @@ def test_storage_manager_s3(mock_storage_settings, mock_fsspec_filesystem):
     )
 
     assert profile_key == "s3_profile"
-    assert storage_params == {"target_path": "my-bucket/torrents/abc123hash.torrent"}
+    assert storage_params == {
+        "bucket": "my-bucket",
+        "target_path": "torrents/abc123hash.torrent",
+        "full_path": "my-bucket/torrents/abc123hash.torrent",
+    }
     assert (
-        download_url
-        == "https://s3.amazonaws.com/my-bucket/my-bucket/torrents/abc123hash.torrent"
+        download_url == "https://s3.amazonaws.com/my-bucket/torrents/abc123hash.torrent"
     )
     mock_fsspec_filesystem.assert_called_once_with(
         "s3",
@@ -132,10 +135,7 @@ def test_storage_manager_s3(mock_storage_settings, mock_fsspec_filesystem):
 
     # Test get_download_url
     url = manager.get_download_url(profile_key, storage_params)
-    assert (
-        url
-        == "https://s3.amazonaws.com/my-bucket/my-bucket/torrents/abc123hash.torrent"
-    )
+    assert url == "https://s3.amazonaws.com/my-bucket/torrents/abc123hash.torrent"
 
 
 @patch("torrent_stats.services.storage.s3.fsspec.filesystem")
