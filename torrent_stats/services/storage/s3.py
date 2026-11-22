@@ -14,6 +14,16 @@ class S3Storage(BaseStorage):
         fs_config.pop("download_url_template", None)
         fs_config.pop("target_path_template", None)
         fs_config.pop("bucket", None)
+
+        region_name = fs_config.pop("region_name", None)
+        if region_name:
+            client_kwargs = fs_config.get("client_kwargs", {})
+            if isinstance(client_kwargs, dict):
+                client_kwargs.setdefault("region_name", region_name)
+            else:
+                client_kwargs = {"region_name": region_name}
+            fs_config["client_kwargs"] = client_kwargs
+
         self.fs = fsspec.filesystem("s3", **fs_config)
 
     def upload(self, info_hash: str, file_bytes: bytes) -> dict[str, Any]:

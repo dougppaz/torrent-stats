@@ -161,3 +161,28 @@ def test_storage_manager_s3_missing_download_template(
     _, handler = manager.get_storage_handler("s3_profile")
     with pytest.raises(ValueError, match="missing 'target_path'"):
         handler.get_download_url({})
+
+
+@patch("torrent_stats.services.storage.s3.fsspec.filesystem")
+@patch("torrent_stats.services.storage.manager.storage_profiles_settings")
+def test_storage_manager_s3_with_region(mock_storage_settings, mock_fsspec_filesystem):
+    mock_storage_settings.current_storage_profile = "s3_profile"
+    mock_storage_settings.profiles = {
+        "s3_profile": StorageProfileConfig(
+            type="s3",
+            config={
+                "bucket": "my-bucket",
+                "region_name": "garage",
+                "target_path_template": "{bucket}/torrents/{info_hash}.torrent",
+                "download_url_template": "https://s3-api.example.com/{bucket}/{target_path}",
+            },
+        )
+    }
+
+    manager = StorageManager()
+    manager.upload_torrent("abc123hash", b"torrent-content")
+
+    mock_fsspec_filesystem.assert_called_once_with(
+        "s3",
+        client_kwargs={"region_name": "garage"},
+    )

@@ -12,7 +12,7 @@ logging.basicConfig(
     format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
 )
 
-app = FastAPI(title=app_settings.app_name, version="1.1.0-rc3")
+app = FastAPI(title=app_settings.app_name, version="1.1.0-rc4")
 
 app.include_router(torrents_router)
 app.include_router(worker_router)
