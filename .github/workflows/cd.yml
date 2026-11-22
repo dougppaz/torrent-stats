@@ -27,8 +27,8 @@ jobs:
           mkdir -p worker/dist
           cd worker
           
-          # Linux amd64
-          GOOS=linux GOARCH=amd64 go build -ldflags="-s -w" -o dist/torrent-stats-worker-linux-amd64 .
+          # Linux amd64 (targeting v1 for maximum CPU compatibility on older servers)
+          GOOS=linux GOARCH=amd64 GOAMD64=v1 go build -ldflags="-s -w" -o dist/torrent-stats-worker-linux-amd64 .
           
           # Linux arm64
           GOOS=linux GOARCH=arm64 go build -ldflags="-s -w" -o dist/torrent-stats-worker-linux-arm64 .
