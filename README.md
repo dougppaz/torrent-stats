@@ -114,6 +114,7 @@ Storage backends (`local`, `ftp`, `s3` / `s3fs`) are managed via `fsspec` and co
   STORAGE_PROFILE_FTP_DOWNLOAD_URL_TEMPLATE=ftp://user:pass@ftp.example.com/torrents/{info_hash}.torrent
   ```
 - **S3 / S3-compatible Storage (AWS S3, MinIO, LocalStack)**:
+  *(Note: `STORAGE_PROFILE_S3_BUCKET` is used to interpolate `{bucket}` in path and download URL templates)*
   ```env
   STORAGE_PROFILE_S3_TYPE=s3
   STORAGE_PROFILE_S3_BUCKET=my-torrent-bucket
