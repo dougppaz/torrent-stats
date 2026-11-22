@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "torrent-stats"
-version = "1.0.0"
+version = "1.1.0-rc1"
 description = "Resolving info hashes into .torrent files, detailed file trees, and live peer/seed stats across trackers."
 authors = ["Douglas Paz <eu@douglaspaz.com>"]
 readme = "README.md"
