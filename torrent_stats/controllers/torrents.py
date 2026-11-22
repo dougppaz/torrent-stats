@@ -63,8 +63,9 @@ class TorrentController:
                     scrape_torrent_task.last_attempt_at
                 )
                 if (
-                    now - last_attempt
-                ).total_seconds() >= worker_settings.worker_failure_cooldown_seconds:
+                    (now - last_attempt).total_seconds()
+                    >= worker_settings.worker_scrape_torrent_failure_cooldown_seconds
+                ):
                     self.task_repository.delete(scrape_torrent_task.id)
                     self.task_repository.save(
                         TaskDocument(

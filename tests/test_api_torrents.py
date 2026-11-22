@@ -220,7 +220,7 @@ def test_get_torrent_no_renew_failed_scrape_torrent_cooldown_active():
     meta = TorrentMetadata(info_hash=VALID_HASH, total_hits=1)
     mock_repo.get_or_create.return_value = (meta, False)
 
-    recent = (datetime.now(UTC) - timedelta(hours=1)).isoformat()
+    recent = (datetime.now(UTC) - timedelta(minutes=10)).isoformat()
     old_task = TaskDocument(
         _id="task-old",
         info_hash=VALID_HASH,

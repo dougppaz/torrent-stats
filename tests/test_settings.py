@@ -23,6 +23,8 @@ def test_settings_initialization():
 
     worker_s = WorkerSettings()
     assert worker_s.worker_failure_cooldown_seconds == 43200
+    assert worker_s.worker_scrape_torrent_failure_cooldown_seconds == 3600
+    assert worker_s.worker_stats_cooldown_seconds == 1800
 
     trackers_s = TrackersSettings()
     assert isinstance(trackers_s.default_trackers, list)

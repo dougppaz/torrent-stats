@@ -9,7 +9,7 @@
 
 Currently, once a `scrape_torrent` or `scrape_stats` task is created for a torrent, its existence prevents any future tasks from being created regardless of its status (`completed` or `failed`), and failed tasks are never retried or recreated once their cooldown has elapsed. Users and system operators pay the cost of stale or permanently failed torrent task states without automatic retries or periodic stats refresh.
 
-When this ships, failed tasks are automatically renewed (deleted and recreated with status `pending`) after their respective cooldown period (`WORKER_FAILURE_COOLDOWN_SECONDS` or `WORKER_STATS_COOLDOWN_SECONDS`), and completed `scrape_stats` tasks are refreshed periodically after the stats update cooldown, while completed `scrape_torrent` tasks remain terminal and are not renewed.
+When this ships, failed `scrape_torrent` tasks are automatically renewed after `WORKER_SCRAPE_TORRENT_FAILURE_COOLDOWN_SECONDS` (default 1 hour), `scrape_stats` tasks (both completed and failed) are refreshed/retried periodically after `WORKER_STATS_COOLDOWN_SECONDS` (default 30 minutes), while successfully completed `scrape_torrent` tasks remain terminal and are not renewed.
 
 ## Shape
 
@@ -17,7 +17,7 @@ This reuses `TorrentController`, `TaskRepository`, and `worker_settings` instead
 
 1. `GET /torrents/{hash}` -> `TorrentController` (exists) - fetches existing tasks via `TaskRepository.find_by_info_hash(hash)`.
 2. `TorrentController` (exists) - evaluates task cooldown and renewal logic:
-   - For `scrape_torrent`: if failed and elapsed time since `last_attempt_at` exceeds `worker_failure_cooldown_seconds`, removes old task and creates new `pending` task. If completed, does nothing.
+   - For `scrape_torrent`: if failed and elapsed time since `last_attempt_at` exceeds `worker_scrape_torrent_failure_cooldown_seconds`, removes old task and creates new `pending` task. If completed, does nothing.
    - For `scrape_stats`: if completed or failed, and elapsed time since `tracker_updated_at` (or `last_attempt_at` / `updated_at`) exceeds `worker_stats_cooldown_seconds`, removes old task and creates new `pending` task.
 3. `TaskRepository` (exists) - persists deleted/new tasks.
 4. out: `TorrentDetailResponse` (exists) with updated active tasks.
@@ -74,8 +74,8 @@ Failed and stale tasks are automatically renewed and recreated as pending after 
 
 **Acceptance Criteria**
 
-1. WHEN a `scrape_torrent` task is in `failed` status and the elapsed time since `last_attempt_at` exceeds `worker_failure_cooldown_seconds`, THEN `GET /torrents/{hash}` SHALL remove the old failed task and create a new `scrape_torrent` task with `status="pending"`.
-   - Elapsed time < failure cooldown → old task retained; elapsed time >= failure cooldown → old task replaced by new `pending` task.
+1. WHEN a `scrape_torrent` task is in `failed` status and the elapsed time since `last_attempt_at` exceeds `worker_scrape_torrent_failure_cooldown_seconds`, THEN `GET /torrents/{hash}` SHALL remove the old failed task and create a new `scrape_torrent` task with `status="pending"`.
+   - Elapsed time < torrent failure cooldown → old task retained; elapsed time >= torrent failure cooldown → old task replaced by new `pending` task.
 2. WHEN a `scrape_torrent` task is in `completed` status, THEN `GET /torrents/{hash}` SHALL NOT renew or recreate it, regardless of elapsed time.
    - Completed `scrape_torrent` task present → no new `scrape_torrent` task created.
 3. WHEN a `scrape_stats` task is in `completed` or `failed` status and the elapsed time since `tracker_updated_at` (or `last_attempt_at` / `updated_at`) exceeds `worker_stats_cooldown_seconds`, THEN `GET /torrents/{hash}` SHALL remove the old task and create a new `scrape_stats` task for that tracker with `status="pending"`.
