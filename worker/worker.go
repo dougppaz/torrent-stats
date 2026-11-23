@@ -12,12 +12,14 @@ import (
 type Worker struct {
 	client        *Client
 	claimInterval time.Duration
+	scrapeTimeout time.Duration
 }
 
-func NewWorker(client *Client, claimInterval time.Duration) *Worker {
+func NewWorker(client *Client, claimInterval, scrapeTimeout time.Duration) *Worker {
 	return &Worker{
 		client:        client,
 		claimInterval: claimInterval,
+		scrapeTimeout: scrapeTimeout,
 	}
 }
 
@@ -55,7 +57,7 @@ func (w *Worker) pollAndExecute() {
 }
 
 func (w *Worker) executeTaskStub(task *Task) {
-	scrapeTorrentHandler := tasks.NewScrapeTorrentHandler(w.client)
+	scrapeTorrentHandler := tasks.NewScrapeTorrentHandler(w.client, w.scrapeTimeout)
 	scrapeStatsHandler := tasks.NewScrapeStatsHandler(w.client)
 
 	switch task.TaskType {
