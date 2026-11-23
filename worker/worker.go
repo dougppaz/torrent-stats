@@ -60,7 +60,7 @@ func (w *Worker) executeTaskStub(task *Task) {
 
 	switch task.TaskType {
 	case "scrape_torrent":
-		_ = scrapeTorrentHandler.Execute(task.TaskID, task.InfoHash)
+		_ = scrapeTorrentHandler.Execute(task.TaskID, task.InfoHash, task.Trackers)
 	case "scrape_stats":
 		trackerURL := ""
 		if task.TrackerURL != nil {

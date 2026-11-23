@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 
 class TaskResponse(BaseModel):
@@ -20,6 +20,7 @@ class TaskClaimResponse(BaseModel):
     tracker_url: str | None = None
     updated_at: str | None = None
     lease_expires_at: str
+    trackers: list[str] = Field(default_factory=list)
 
 
 class TaskFailureRequest(BaseModel):

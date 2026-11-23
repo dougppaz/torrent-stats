@@ -80,6 +80,7 @@ def test_worker_claim_task_no_content():
 def test_worker_claim_task_success():
     mock_worker_key_repo = MagicMock()
     mock_task_repo = MagicMock()
+    mock_torrent_repo = MagicMock()
     mock_worker_key_repo.find_by_key_hash.return_value = WorkerKey(
         _id="hash1", key_hash="hash1"
     )
@@ -90,6 +91,10 @@ def test_worker_claim_task_success():
         status="pending",
     )
     mock_task_repo.find_claimable.return_value = [task]
+    mock_torrent_repo.find_by_info_hash.return_value = TorrentMetadata(
+        info_hash="abc123456",
+        tracker_stats=[TrackerStat(tracker_url="udp://tracker.test:1337")],
+    )
 
     def update_mock_task(
         task_id: str,
@@ -114,6 +119,7 @@ def test_worker_claim_task_success():
 
     app.dependency_overrides[get_worker_key_repository] = lambda: mock_worker_key_repo
     app.dependency_overrides[get_task_repository] = lambda: mock_task_repo
+    app.dependency_overrides[get_torrent_repository] = lambda: mock_torrent_repo
 
     try:
         response = client.post(
@@ -128,6 +134,7 @@ def test_worker_claim_task_success():
     assert data["info_hash"] == "abc123456"
     assert data["task_type"] == "scrape_torrent"
     assert "lease_expires_at" in data
+    assert data["trackers"] == ["udp://tracker.test:1337"]
 
 
 def test_worker_claim_task_expired_lease_and_cooldowns():
