@@ -24,36 +24,44 @@ func NewWorker(client *Client, claimInterval, scrapeTimeout time.Duration) *Work
 }
 
 func (w *Worker) Start(ctx context.Context) {
-	log.Printf("Worker started, polling claim endpoint every %v", w.claimInterval)
-	ticker := time.NewTicker(w.claimInterval)
-	defer ticker.Stop()
-
-	w.pollAndExecute()
+	log.Printf("Worker started, polling claim interval: %v (instant claim when tasks available)", w.claimInterval)
 
 	for {
+		if ctx.Err() != nil {
+			log.Println("Worker stopping...")
+			return
+		}
+
+		claimed := w.pollAndExecute()
+		if claimed {
+			// Immediately poll next task without waiting
+			continue
+		}
+
+		// No task available (204) or error, wait for claimInterval before next poll
 		select {
 		case <-ctx.Done():
 			log.Println("Worker stopping...")
 			return
-		case <-ticker.C:
-			w.pollAndExecute()
+		case <-time.After(w.claimInterval):
 		}
 	}
 }
 
-func (w *Worker) pollAndExecute() {
+func (w *Worker) pollAndExecute() bool {
 	task, claimed, err := w.client.ClaimTask()
 	if err != nil {
 		log.Printf("Error claiming task: %v", err)
-		return
+		return false
 	}
 
 	if !claimed {
-		return
+		return false
 	}
 
 	log.Printf("Claimed task %s (type: %s, hash: %s)", task.TaskID, task.TaskType, task.InfoHash)
 	w.executeTaskStub(task)
+	return true
 }
 
 func (w *Worker) executeTaskStub(task *Task) {
