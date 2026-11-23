@@ -23,15 +23,16 @@ type TorrentFilePayload struct {
 }
 
 type ScrapeTorrentHandler struct {
-	client ScrapeClient
+	client        ScrapeClient
+	scrapeTimeout time.Duration
 }
 
-func NewScrapeTorrentHandler(client ScrapeClient) *ScrapeTorrentHandler {
-	return &ScrapeTorrentHandler{client: client}
+func NewScrapeTorrentHandler(client ScrapeClient, scrapeTimeout time.Duration) *ScrapeTorrentHandler {
+	return &ScrapeTorrentHandler{client: client, scrapeTimeout: scrapeTimeout}
 }
 
 func (h *ScrapeTorrentHandler) Execute(taskID, infoHash string, trackers []string) error {
-	log.Printf("[INFO] Executing scrape_torrent for task_id=%s, info_hash=%s, trackers_count=%d", taskID, infoHash, len(trackers))
+	log.Printf("[INFO] Executing scrape_torrent for task_id=%s, info_hash=%s, trackers_count=%d, timeout=%v", taskID, infoHash, len(trackers), h.scrapeTimeout)
 
 	cfg := torrent.NewDefaultClientConfig()
 	tmpDir, err := os.MkdirTemp("", "torrent-stats-worker-*")
@@ -69,7 +70,7 @@ func (h *ScrapeTorrentHandler) Execute(taskID, infoHash string, trackers []strin
 		return fmt.Errorf("%s", errMsg)
 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), 45*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), h.scrapeTimeout)
 	defer cancel()
 
 	select {

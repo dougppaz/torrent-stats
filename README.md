@@ -140,3 +140,4 @@ The remote worker can be configured using environment variables or command-line 
 | `TORRENT_STATS_API_URL` | `--api-url` / `-u` | *(Required)* | Torrent Stats API base URL |
 | `TORRENT_STATS_WORKER_KEY` | `--worker-key` / `-k` | *(Required)* | Worker authentication key (`X-Worker-Key`) |
 | `TORRENT_STATS_CLAIM_INTERVAL` | `--claim-interval` / `-i` | `30s` | Polling interval for claiming tasks |
+| `TORRENT_STATS_SCRAPE_TIMEOUT` | `--scrape-timeout` | `4m` | Timeout for scraping torrent metadata from DHT/trackers |

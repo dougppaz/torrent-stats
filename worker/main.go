@@ -18,7 +18,7 @@ func main() {
 	log.Printf("Initializing worker with API URL: %s", config.APIURL)
 
 	client := NewClient(config.APIURL, config.WorkerKey)
-	worker := NewWorker(client, config.ClaimInterval)
+	worker := NewWorker(client, config.ClaimInterval, config.ScrapeTimeout)
 
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()

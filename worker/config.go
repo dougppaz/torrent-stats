@@ -10,6 +10,7 @@ type Config struct {
 	APIURL        string
 	WorkerKey     string
 	ClaimInterval time.Duration
+	ScrapeTimeout time.Duration
 }
 
 func ParseConfig(arguments []string, envLookup func(string) (string, bool)) (*Config, error) {
@@ -18,6 +19,7 @@ func ParseConfig(arguments []string, envLookup func(string) (string, bool)) (*Co
 	var apiURLFlag string
 	var workerKeyFlag string
 	var claimIntervalFlag string
+	var scrapeTimeoutFlag string
 
 	fs.StringVar(&apiURLFlag, "api-url", "", "API URL")
 	fs.StringVar(&apiURLFlag, "u", "", "API URL (shorthand)")
@@ -25,6 +27,7 @@ func ParseConfig(arguments []string, envLookup func(string) (string, bool)) (*Co
 	fs.StringVar(&workerKeyFlag, "k", "", "Worker authentication key (shorthand)")
 	fs.StringVar(&claimIntervalFlag, "claim-interval", "", "Claim polling interval (e.g. 30s)")
 	fs.StringVar(&claimIntervalFlag, "i", "", "Claim polling interval (shorthand)")
+	fs.StringVar(&scrapeTimeoutFlag, "scrape-timeout", "", "Metadata scrape timeout (e.g. 4m)")
 
 	if err := fs.Parse(arguments); err != nil {
 		return nil, err
@@ -64,6 +67,17 @@ func ParseConfig(arguments []string, envLookup func(string) (string, bool)) (*Co
 		}
 	}
 
+	scrapeTimeoutStr := scrapeTimeoutFlag
+	if scrapeTimeoutStr == "" {
+		if val, ok := envLookup("TORRENT_STATS_SCRAPE_TIMEOUT"); ok {
+			scrapeTimeoutStr = val
+		} else if val, ok := envLookup("SCRAPE_TIMEOUT"); ok {
+			scrapeTimeoutStr = val
+		} else if val, ok := envLookup("TORRENT_SCRAPE_TIMEOUT"); ok {
+			scrapeTimeoutStr = val
+		}
+	}
+
 	if apiURL == "" {
 		return nil, fmt.Errorf("missing required parameter: API URL (--api-url, TORRENT_STATS_API_URL or API_URL)")
 	}
@@ -80,9 +94,19 @@ func ParseConfig(arguments []string, envLookup func(string) (string, bool)) (*Co
 		claimInterval = d
 	}
 
+	scrapeTimeout := 4 * time.Minute
+	if scrapeTimeoutStr != "" {
+		d, err := time.ParseDuration(scrapeTimeoutStr)
+		if err != nil {
+			return nil, fmt.Errorf("invalid scrape timeout format %q: %w", scrapeTimeoutStr, err)
+		}
+		scrapeTimeout = d
+	}
+
 	return &Config{
 		APIURL:        apiURL,
 		WorkerKey:     workerKey,
 		ClaimInterval: claimInterval,
+		ScrapeTimeout: scrapeTimeout,
 	}, nil
 }
