@@ -5,6 +5,7 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"net/url"
 	"os"
 	"time"
 
@@ -29,8 +30,8 @@ func NewScrapeTorrentHandler(client ScrapeClient) *ScrapeTorrentHandler {
 	return &ScrapeTorrentHandler{client: client}
 }
 
-func (h *ScrapeTorrentHandler) Execute(taskID, infoHash string) error {
-	log.Printf("[INFO] Executing scrape_torrent for task_id=%s, info_hash=%s", taskID, infoHash)
+func (h *ScrapeTorrentHandler) Execute(taskID, infoHash string, trackers []string) error {
+	log.Printf("[INFO] Executing scrape_torrent for task_id=%s, info_hash=%s, trackers_count=%d", taskID, infoHash, len(trackers))
 
 	cfg := torrent.NewDefaultClientConfig()
 	tmpDir, err := os.MkdirTemp("", "torrent-stats-worker-*")
@@ -55,6 +56,11 @@ func (h *ScrapeTorrentHandler) Execute(taskID, infoHash string) error {
 	defer client.Close()
 
 	magnetURI := fmt.Sprintf("magnet:?xt=urn:btih:%s", infoHash)
+	for _, tr := range trackers {
+		if tr != "" {
+			magnetURI += fmt.Sprintf("&tr=%s", url.QueryEscape(tr))
+		}
+	}
 	t, err := client.AddMagnet(magnetURI)
 	if err != nil {
 		errMsg := fmt.Sprintf("failed to add magnet: %v", err)

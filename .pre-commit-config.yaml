@@ -10,3 +10,5 @@ repos:
     hooks:
       - id: mypy
         additional_dependencies: [pydantic, fastapi, redis, pydantic-settings]
+
+exclude: ^\.agents/

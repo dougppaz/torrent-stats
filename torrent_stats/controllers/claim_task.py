@@ -4,7 +4,7 @@ import logging
 from datetime import UTC, datetime
 
 from torrent_stats.db.models import TaskDocument
-from torrent_stats.db.repository import TaskRepository
+from torrent_stats.db.repository import TaskRepository, TorrentMetadataRepository
 from torrent_stats.schemas import TaskClaimResponse
 from torrent_stats.settings import WorkerSettings
 
@@ -15,9 +15,11 @@ class TaskClaimController:
     def __init__(
         self,
         task_repository: TaskRepository,
+        torrent_repository: TorrentMetadataRepository,
         worker_settings: WorkerSettings,
     ) -> None:
         self.task_repo = task_repository
+        self.torrent_repo = torrent_repository
         self.worker_settings = worker_settings
 
     def claim_task(self) -> TaskClaimResponse | None:
@@ -97,12 +99,21 @@ class TaskClaimController:
         if updated:
             task = updated
 
+        trackers: list[str] = []
+        if task.task_type == "scrape_torrent":
+            torrent = self.torrent_repo.find_by_info_hash(task.info_hash)
+            if torrent and torrent.tracker_stats:
+                trackers = [ts.tracker_url for ts in torrent.tracker_stats]
+        elif task.task_type == "scrape_stats" and task.tracker_url:
+            trackers = [task.tracker_url]
+
         logger.info(
-            "Worker successfully claimed task %s for info_hash %s (type: %s, lease expires at %s).",
+            "Worker successfully claimed task %s for info_hash %s (type: %s, lease expires at %s, trackers: %d).",
             task.id,
             task.info_hash,
             task.task_type,
             task.lease_expires_at,
+            len(trackers),
         )
 
         return TaskClaimResponse(
@@ -112,4 +123,5 @@ class TaskClaimController:
             tracker_url=task.tracker_url,
             updated_at=task.tracker_updated_at,
             lease_expires_at=task.lease_expires_at or "",
+            trackers=trackers,
         )

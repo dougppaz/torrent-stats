@@ -13,12 +13,13 @@ import (
 )
 
 type Task struct {
-	TaskID         string  `json:"task_id"`
-	InfoHash       string  `json:"info_hash"`
-	TaskType       string  `json:"task_type"`
-	TrackerURL     *string `json:"tracker_url"`
-	UpdatedAt      *string `json:"updated_at"`
-	LeaseExpiresAt string  `json:"lease_expires_at"`
+	TaskID         string   `json:"task_id"`
+	InfoHash       string   `json:"info_hash"`
+	TaskType       string   `json:"task_type"`
+	TrackerURL     *string  `json:"tracker_url"`
+	UpdatedAt      *string  `json:"updated_at"`
+	LeaseExpiresAt string   `json:"lease_expires_at"`
+	Trackers       []string `json:"trackers"`
 }
 
 type TaskFailureRequest struct {

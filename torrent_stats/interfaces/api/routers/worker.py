@@ -59,9 +59,11 @@ def verify_worker_key(
 
 def get_task_claim_controller(
     task_repository: TaskRepositoryDepends,
+    torrent_repository: TorrentRepositoryDepends,
 ) -> TaskClaimController:
     return TaskClaimController(
         task_repository=task_repository,
+        torrent_repository=torrent_repository,
         worker_settings=worker_settings,
     )
 

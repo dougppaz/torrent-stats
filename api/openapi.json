@@ -2,7 +2,7 @@
   "openapi": "3.1.0",
   "info": {
     "title": "torrent-stats API",
-    "version": "1.1.0-rc6"
+    "version": "1.1.1"
   },
   "paths": {
     "/torrents/{hash}": {
@@ -471,6 +471,13 @@
           "lease_expires_at": {
             "type": "string",
             "title": "Lease Expires At"
+          },
+          "trackers": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Trackers"
           }
         },
         "type": "object",
