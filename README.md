@@ -6,7 +6,6 @@ Resolving info hashes into .torrent files, detailed file trees, and live peer/se
 
 - **API (`torrent_stats/` - Python)**: FastAPI + CouchDB (Repository pattern) + Redis (12h hourly hit buckets synced to CouchDB `total_hits`/`last_hit_at`, task leases). Agnostic storage profiles (Local storage default via `fsspec`, recording profile key & storage parameters, rendering download URLs via absolute local paths or profile templates).
 - **Worker (`worker/` - Go)**: Standalone binary communicating via authenticated HTTP API endpoints (`X-Worker-Key`) with ACK/leases and automatic tracker pruning after 3 consecutive failures.
-- **API Specification**: Defined in `api/openapi.json`.
 
 ---
 
