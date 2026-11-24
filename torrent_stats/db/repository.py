@@ -63,38 +63,14 @@ class TorrentMetadataRepository(BaseRepository[TorrentMetadata]):
     def find_by_info_hash(self, info_hash: str) -> TorrentMetadata | None:
         return self.get(info_hash)
 
-    def get_or_create(
-        self, info_hash: str, total_hits: int = 0, last_hit_at: str | None = None
-    ) -> tuple[TorrentMetadata, bool]:
+    def get_or_create(self, info_hash: str) -> tuple[TorrentMetadata, bool]:
         torrent = self.find_by_info_hash(info_hash)
         if torrent:
-            torrent.total_hits = total_hits
-            torrent.last_hit_at = last_hit_at
             return torrent, False
         else:
-            torrent = TorrentMetadata(
-                info_hash=info_hash,
-                total_hits=total_hits,
-                last_hit_at=last_hit_at,
-            )
+            torrent = TorrentMetadata(info_hash=info_hash)
             saved = self.save(torrent)
             return saved, True
-
-    def update_hits(
-        self, info_hash: str, total_hits: int, last_hit_at: str
-    ) -> TorrentMetadata:
-        torrent = self.find_by_info_hash(info_hash)
-        if torrent:
-            torrent.total_hits = total_hits
-            torrent.last_hit_at = last_hit_at
-            return self.save(torrent)
-        else:
-            torrent = TorrentMetadata(
-                info_hash=info_hash,
-                total_hits=total_hits,
-                last_hit_at=last_hit_at,
-            )
-            return self.save(torrent)
 
     def add_tracker_stats(
         self, info_hash: str, tracker_urls: list[str]
@@ -117,7 +93,7 @@ class TorrentMetadataRepository(BaseRepository[TorrentMetadata]):
                 )
                 existing_urls.add(tr)
                 added = True
-        if added or not torrent.total_hits:
+        if added:
             return self.save(torrent)
         return torrent
 

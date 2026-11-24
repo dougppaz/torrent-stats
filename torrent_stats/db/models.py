@@ -64,8 +64,6 @@ class TorrentMetadata(BaseModel):
     total_size: int | None = None
     storage_profile_key: str | None = None
     storage_params: dict[str, Any] | None = None
-    total_hits: int = 0
-    last_hit_at: str | None = None
     files: list[TorrentFile] | None = None
     tracker_stats: list[TrackerStat] = Field(default_factory=list)
     tasks: list[TaskItem] = Field(default_factory=list)

@@ -16,13 +16,11 @@ def test_torrent_metadata_repository():
         "info_hash": "abc123hash",
         "name": "Mock Torrent",
         "total_size": 2048,
-        "total_hits": 5,
     }
     repo = TorrentMetadataRepository(client=mock_client)
     result = repo.find_by_info_hash("abc123hash")
     assert result is not None
     assert result.name == "Mock Torrent"
-    assert result.total_hits == 5
 
     # Test get returning None
     mock_client.get_doc.return_value = None
@@ -42,14 +40,14 @@ def test_torrent_metadata_get_or_create():
         "info_hash": "abc123hash",
         "name": "Existing",
     }
-    mock_client.save_doc.return_value = {"id": "abc123hash", "rev": "2-rev"}
-    torrent, created = repo.get_or_create("abc123hash", total_hits=3, last_hit_at="now")
+    torrent, created = repo.get_or_create("abc123hash")
     assert not created
-    assert torrent.total_hits == 3
+    assert torrent.info_hash == "abc123hash"
 
     # Case 2: does not exist
     mock_client.get_doc.return_value = None
-    torrent, created = repo.get_or_create("newhash", total_hits=1, last_hit_at="now")
+    mock_client.save_doc.return_value = {"id": "newhash", "rev": "1-rev"}
+    torrent, created = repo.get_or_create("newhash")
     assert created
     assert torrent.info_hash == "newhash"
 
@@ -122,25 +120,6 @@ def test_task_repository_find_claimable_fallback():
     tasks = repo.find_claimable()
     assert len(tasks) == 1
     assert tasks[0].id == "t1"
-
-
-def test_torrent_metadata_update_hits():
-    mock_client = MagicMock()
-    repo = TorrentMetadataRepository(client=mock_client)
-    # Exists
-    mock_client.get_doc.return_value = {
-        "_id": "hash1",
-        "info_hash": "hash1",
-        "total_hits": 2,
-    }
-    mock_client.save_doc.return_value = {"id": "hash1", "rev": "2-rev"}
-    updated = repo.update_hits("hash1", 10, "2026-01-01T00:00:00Z")
-    assert updated.total_hits == 10
-
-    # Does not exist
-    mock_client.get_doc.return_value = None
-    created = repo.update_hits("hash2", 5, "2026-01-01T00:00:00Z")
-    assert created.total_hits == 5
 
 
 def test_torrent_metadata_add_tracker_stats():

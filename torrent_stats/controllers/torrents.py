@@ -34,22 +34,12 @@ class TorrentController:
         total_hits, last_hit_at = self.hit_counter.record_hit(
             hash, record_hit=record_hit
         )
-        if isinstance(last_hit_at, datetime):
-            current_request_timestamp = last_hit_at.isoformat()
-        elif isinstance(last_hit_at, str):
-            current_request_timestamp = last_hit_at
-        else:
-            current_request_timestamp = datetime.now(UTC).isoformat()
-
-        resp_last_hit = (
-            last_hit_at.isoformat()
-            if isinstance(last_hit_at, datetime)
-            else last_hit_at
+        current_request_timestamp = (
+            last_hit_at.isoformat() if last_hit_at else datetime.now(UTC).isoformat()
         )
+        resp_last_hit = last_hit_at.isoformat() if last_hit_at else None
 
-        torrent, _ = self.torrent_repository.get_or_create(
-            hash, total_hits=total_hits, last_hit_at=current_request_timestamp
-        )
+        torrent, _ = self.torrent_repository.get_or_create(hash)
 
         now = datetime.now(UTC)
         existing_tasks = self.task_repository.find_by_info_hash(hash)
