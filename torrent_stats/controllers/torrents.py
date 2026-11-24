@@ -34,7 +34,18 @@ class TorrentController:
         total_hits, last_hit_at = self.hit_counter.record_hit(
             hash, record_hit=record_hit
         )
-        current_request_timestamp = last_hit_at
+        if isinstance(last_hit_at, datetime):
+            current_request_timestamp = last_hit_at.isoformat()
+        elif isinstance(last_hit_at, str):
+            current_request_timestamp = last_hit_at
+        else:
+            current_request_timestamp = datetime.now(UTC).isoformat()
+
+        resp_last_hit = (
+            last_hit_at.isoformat()
+            if isinstance(last_hit_at, datetime)
+            else last_hit_at
+        )
 
         torrent, _ = self.torrent_repository.get_or_create(
             hash, total_hits=total_hits, last_hit_at=current_request_timestamp
@@ -164,8 +175,8 @@ class TorrentController:
             storage_profile_key=torrent.storage_profile_key,
             storage_params=torrent.storage_params,
             download_url=download_url,
-            total_hits=torrent.total_hits,
-            last_hit_at=torrent.last_hit_at,
+            total_hits=total_hits,
+            last_hit_at=resp_last_hit,
             files=(
                 [
                     TorrentFileResponse(path=f.path, length=f.length)

@@ -12,7 +12,9 @@ class HitCounterService:
             redis_settings.redis_url, decode_responses=True
         )
 
-    def record_hit(self, info_hash: str, record_hit: bool = True) -> tuple[int, str]:
+    def record_hit(
+        self, info_hash: str, record_hit: bool = True
+    ) -> tuple[int, datetime | None]:
         now = datetime.now(UTC)
         hour_str = now.strftime("%Y-%m-%d-%H")
         hit_key = f"torrent:hits:{info_hash}:{hour_str}"
@@ -27,7 +29,11 @@ class HitCounterService:
 
         total_hits = self.get_hits(info_hash)
         last_hit_val = self.redis_client.get(last_hit_key)
-        last_hit_at = str(last_hit_val) if last_hit_val is not None else now.isoformat()
+        last_hit_at = (
+            datetime.fromisoformat(str(last_hit_val))
+            if last_hit_val is not None
+            else None
+        )
 
         return total_hits, last_hit_at
 
