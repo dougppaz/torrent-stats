@@ -35,7 +35,7 @@ class TorrentController:
             hash, record_hit=record_hit
         )
         current_request_timestamp = datetime.now(UTC).isoformat()
-        resp_last_hit = last_hit_at.isoformat() if last_hit_at else None
+        resp_last_hit = last_hit_at
 
         torrent, _ = self.torrent_repository.get_or_create(hash)
 
