@@ -18,12 +18,12 @@ class TaskClaimController:
         task_repository: TaskRepository,
         torrent_repository: TorrentMetadataRepository,
         worker_settings: WorkerSettings,
-        hit_counter: HitCounterService | None = None,
+        hit_counter: HitCounterService,
     ) -> None:
         self.task_repo = task_repository
         self.torrent_repo = torrent_repository
         self.worker_settings = worker_settings
-        self.hit_counter = hit_counter or HitCounterService()
+        self.hit_counter = hit_counter
 
     def claim_task(self) -> TaskClaimResponse | None:
         now = datetime.now(UTC)
