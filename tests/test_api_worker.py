@@ -11,6 +11,7 @@ from torrent_stats.db.models import (
     WorkerKey,
 )
 from torrent_stats.interfaces.api.depends import (
+    get_hit_counter_service,
     get_storage_manager,
     get_task_repository,
     get_torrent_repository,
@@ -120,6 +121,9 @@ def test_worker_claim_task_success():
     app.dependency_overrides[get_worker_key_repository] = lambda: mock_worker_key_repo
     app.dependency_overrides[get_task_repository] = lambda: mock_task_repo
     app.dependency_overrides[get_torrent_repository] = lambda: mock_torrent_repo
+    app.dependency_overrides[get_hit_counter_service] = lambda: MagicMock(
+        get_hits=lambda h: 0
+    )
 
     try:
         response = client.post(
@@ -196,6 +200,9 @@ def test_worker_claim_task_expired_lease_and_cooldowns():
     app.dependency_overrides[get_worker_key_repository] = lambda: mock_worker_key_repo
     app.dependency_overrides[get_task_repository] = lambda: mock_task_repo
     app.dependency_overrides[get_torrent_repository] = lambda: mock_torrent_repo
+    app.dependency_overrides[get_hit_counter_service] = lambda: MagicMock(
+        get_hits=lambda h: 0
+    )
 
     try:
         response = client.post(

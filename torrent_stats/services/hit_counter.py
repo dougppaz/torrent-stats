@@ -3,9 +3,7 @@ from __future__ import annotations
 from datetime import UTC, datetime, timedelta
 
 import redis
-from torrent_stats.db.client import CouchDBClient
-from torrent_stats.db.repository import TorrentMetadataRepository
-from torrent_stats.settings import couchdb_settings, redis_settings
+from torrent_stats.settings import redis_settings
 
 
 class HitCounterService:
@@ -13,21 +11,34 @@ class HitCounterService:
         self.redis_client = redis.Redis.from_url(
             redis_settings.redis_url, decode_responses=True
         )
-        db_client = CouchDBClient(db_name=couchdb_settings.couchdb_db_name)
-        self.torrent_repo = TorrentMetadataRepository(client=db_client)
 
-    def record_hit(self, info_hash: str) -> tuple[int, str]:
+    def record_hit(
+        self, info_hash: str, record_hit: bool = True
+    ) -> tuple[int, datetime | None]:
         now = datetime.now(UTC)
         hour_str = now.strftime("%Y-%m-%d-%H")
         hit_key = f"torrent:hits:{info_hash}:{hour_str}"
+        last_hit_key = f"torrent:last_hit:{info_hash}"
 
-        # Increment current hour bucket and set 12h TTL
-        pipe = self.redis_client.pipeline()
-        pipe.incr(hit_key)
-        pipe.expire(hit_key, 12 * 3600)
-        pipe.execute()
+        if record_hit:
+            pipe = self.redis_client.pipeline()
+            pipe.incr(hit_key)
+            pipe.expire(hit_key, 12 * 3600)
+            pipe.set(last_hit_key, now.isoformat())
+            pipe.execute()
 
-        # Collect past 12 hourly buckets
+        total_hits = self.get_hits(info_hash)
+        last_hit_val = self.redis_client.get(last_hit_key)
+        last_hit_at = (
+            datetime.fromisoformat(str(last_hit_val))
+            if last_hit_val is not None
+            else None
+        )
+
+        return total_hits, last_hit_at
+
+    def get_hits(self, info_hash: str) -> int:
+        now = datetime.now(UTC)
         keys_to_fetch = []
         for i in range(12):
             bucket_time = now - timedelta(hours=i)
@@ -35,10 +46,4 @@ class HitCounterService:
             keys_to_fetch.append(f"torrent:hits:{info_hash}:{bucket_str}")
 
         values = self.redis_client.mget(keys_to_fetch)
-        total_hits = sum(int(v) for v in values if v is not None)
-        last_hit_at = now.isoformat()
-
-        # Sync to CouchDB metadata if exists
-        self.torrent_repo.update_hits(info_hash, total_hits, last_hit_at)
-
-        return total_hits, last_hit_at
+        return sum(int(v) for v in values if v is not None)

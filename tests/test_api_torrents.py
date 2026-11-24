@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from datetime import UTC, datetime
 from unittest.mock import patch
 
 from fastapi.testclient import TestClient
@@ -23,10 +24,11 @@ def test_get_torrent_endpoint_missing():
     mock_hit_counter = MagicMock()
     mock_storage = MagicMock()
 
-    mock_hit_counter.record_hit.return_value = (10, "2026-11-07T00:00:00Z")
-    meta = TorrentMetadata(
-        info_hash=VALID_HASH, total_hits=10, last_hit_at="2026-11-07T00:00:00Z"
+    mock_hit_counter.record_hit.return_value = (
+        10,
+        datetime(2026, 11, 7, 0, 0, 0, tzinfo=UTC),
     )
+    meta = TorrentMetadata(info_hash=VALID_HASH)
     mock_repo.get_or_create.return_value = (meta, True)
     mock_task_repo.find_by_info_hash.return_value = [
         TaskDocument(info_hash=VALID_HASH, task_type="scrape_torrent", status="pending")
@@ -59,15 +61,16 @@ def test_get_torrent_endpoint_existing():
     mock_hit_counter = __import__("unittest.mock").mock.MagicMock()
     mock_storage = __import__("unittest.mock").mock.MagicMock()
 
-    mock_hit_counter.record_hit.return_value = (5, "2026-11-07T00:00:00Z")
+    mock_hit_counter.record_hit.return_value = (
+        5,
+        datetime(2026, 11, 7, 0, 0, 0, tzinfo=UTC),
+    )
     meta = TorrentMetadata(
         info_hash=VALID_HASH,
         name="Existing Torrent",
         total_size=1024,
         storage_profile_key="ftp",
         storage_params={"file_path": "torrents/abc.torrent"},
-        total_hits=5,
-        last_hit_at="2026-11-07T00:00:00Z",
     )
     mock_repo.get_or_create.return_value = (meta, False)
     mock_storage.get_download_url.return_value = (
@@ -105,8 +108,11 @@ def test_get_torrent_with_default_trackers(mock_trackers_settings):
     mock_hit_counter = __import__("unittest.mock").mock.MagicMock()
     mock_storage = __import__("unittest.mock").mock.MagicMock()
 
-    mock_hit_counter.record_hit.return_value = (1, "2026-11-07T00:00:00Z")
-    meta = TorrentMetadata(info_hash=VALID_HASH, total_hits=1)
+    mock_hit_counter.record_hit.return_value = (
+        1,
+        datetime(2026, 11, 7, 0, 0, 0, tzinfo=UTC),
+    )
+    meta = TorrentMetadata(info_hash=VALID_HASH)
     mock_repo.get_or_create.return_value = (meta, True)
     mock_task_repo.find_by_info_hash.return_value = [
         TaskDocument(info_hash=VALID_HASH, task_type="scrape_torrent", status="pending")
@@ -134,8 +140,11 @@ def test_get_torrent_task_error_message():
     mock_hit_counter = __import__("unittest.mock").mock.MagicMock()
     mock_storage = __import__("unittest.mock").mock.MagicMock()
 
-    mock_hit_counter.record_hit.return_value = (1, "2026-11-07T00:00:00Z")
-    meta = TorrentMetadata(info_hash=VALID_HASH, total_hits=1)
+    mock_hit_counter.record_hit.return_value = (
+        1,
+        datetime(2026, 11, 7, 0, 0, 0, tzinfo=UTC),
+    )
+    meta = TorrentMetadata(info_hash=VALID_HASH)
     mock_repo.get_or_create.return_value = (meta, False)
     mock_task_repo.find_by_info_hash.return_value = [
         TaskDocument(
@@ -172,15 +181,18 @@ def test_get_torrent_invalid_info_hash():
 
 
 def test_get_torrent_renew_failed_scrape_torrent_cooldown_expired():
-    from datetime import UTC, datetime, timedelta
+    from datetime import timedelta
 
-    mock_repo = MagicMock = __import__("unittest.mock").mock.MagicMock()
-    mock_task_repo = MagicMock()
-    mock_hit_counter = MagicMock()
-    mock_storage = MagicMock()
+    mock_repo = __import__("unittest.mock").mock.MagicMock()
+    mock_task_repo = __import__("unittest.mock").mock.MagicMock()
+    mock_hit_counter = __import__("unittest.mock").mock.MagicMock()
+    mock_storage = __import__("unittest.mock").mock.MagicMock()
 
-    mock_hit_counter.record_hit.return_value = (1, "2026-11-07T00:00:00Z")
-    meta = TorrentMetadata(info_hash=VALID_HASH, total_hits=1)
+    mock_hit_counter.record_hit.return_value = (
+        1,
+        datetime(2026, 11, 7, 0, 0, 0, tzinfo=UTC),
+    )
+    meta = TorrentMetadata(info_hash=VALID_HASH)
     mock_repo.get_or_create.return_value = (meta, False)
 
     past = (datetime.now(UTC) - timedelta(hours=15)).isoformat()
@@ -209,15 +221,18 @@ def test_get_torrent_renew_failed_scrape_torrent_cooldown_expired():
 
 
 def test_get_torrent_no_renew_failed_scrape_torrent_cooldown_active():
-    from datetime import UTC, datetime, timedelta
+    from datetime import timedelta
 
     mock_repo = __import__("unittest.mock").mock.MagicMock()
     mock_task_repo = __import__("unittest.mock").mock.MagicMock()
     mock_hit_counter = __import__("unittest.mock").mock.MagicMock()
     mock_storage = __import__("unittest.mock").mock.MagicMock()
 
-    mock_hit_counter.record_hit.return_value = (1, "2026-11-07T00:00:00Z")
-    meta = TorrentMetadata(info_hash=VALID_HASH, total_hits=1)
+    mock_hit_counter.record_hit.return_value = (
+        1,
+        datetime(2026, 11, 7, 0, 0, 0, tzinfo=UTC),
+    )
+    meta = TorrentMetadata(info_hash=VALID_HASH)
     mock_repo.get_or_create.return_value = (meta, False)
 
     recent = (datetime.now(UTC) - timedelta(minutes=10)).isoformat()
@@ -245,15 +260,18 @@ def test_get_torrent_no_renew_failed_scrape_torrent_cooldown_active():
 
 
 def test_get_torrent_no_renew_completed_scrape_torrent():
-    from datetime import UTC, datetime, timedelta
+    from datetime import timedelta
 
     mock_repo = __import__("unittest.mock").mock.MagicMock()
     mock_task_repo = __import__("unittest.mock").mock.MagicMock()
     mock_hit_counter = __import__("unittest.mock").mock.MagicMock()
     mock_storage = __import__("unittest.mock").mock.MagicMock()
 
-    mock_hit_counter.record_hit.return_value = (1, "2026-11-07T00:00:00Z")
-    meta = TorrentMetadata(info_hash=VALID_HASH, total_hits=1)
+    mock_hit_counter.record_hit.return_value = (
+        1,
+        datetime(2026, 11, 7, 0, 0, 0, tzinfo=UTC),
+    )
+    meta = TorrentMetadata(info_hash=VALID_HASH)
     mock_repo.get_or_create.return_value = (meta, False)
 
     past = (datetime.now(UTC) - timedelta(hours=20)).isoformat()
@@ -281,17 +299,19 @@ def test_get_torrent_no_renew_completed_scrape_torrent():
 
 
 def test_get_torrent_renew_scrape_stats_cooldown_expired():
-    from datetime import UTC, datetime, timedelta
+    from datetime import timedelta
 
     mock_repo = __import__("unittest.mock").mock.MagicMock()
     mock_task_repo = __import__("unittest.mock").mock.MagicMock()
     mock_hit_counter = __import__("unittest.mock").mock.MagicMock()
     mock_storage = __import__("unittest.mock").mock.MagicMock()
 
-    mock_hit_counter.record_hit.return_value = (1, "2026-11-07T00:00:00Z")
+    mock_hit_counter.record_hit.return_value = (
+        1,
+        datetime(2026, 11, 7, 0, 0, 0, tzinfo=UTC),
+    )
     meta = TorrentMetadata(
         info_hash=VALID_HASH,
-        total_hits=1,
         tracker_stats=[TrackerStat(tracker_url="udp://tracker:1337", seeds=1, peers=1)],
     )
     mock_repo.get_or_create.return_value = (meta, False)

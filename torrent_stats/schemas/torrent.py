@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from datetime import datetime
 from typing import Any
 
 from pydantic import BaseModel
@@ -21,7 +22,7 @@ class TorrentDetailResponse(BaseModel):
     storage_params: dict[str, Any] | None = None
     download_url: str | None = None
     total_hits: int = 0
-    last_hit_at: str | None = None
+    last_hit_at: datetime | None = None
     files: list[TorrentFileResponse] | None = None
     tracker_stats: list[TrackerStatResponse] = []
     tasks: list[TaskResponse] = []
