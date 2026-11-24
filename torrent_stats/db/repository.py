@@ -70,8 +70,7 @@ class TorrentMetadataRepository(BaseRepository[TorrentMetadata]):
         if torrent:
             torrent.total_hits = total_hits
             torrent.last_hit_at = last_hit_at
-            saved = self.save(torrent)
-            return saved, False
+            return torrent, False
         else:
             torrent = TorrentMetadata(
                 info_hash=info_hash,

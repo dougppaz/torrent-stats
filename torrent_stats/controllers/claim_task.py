@@ -6,6 +6,7 @@ from datetime import UTC, datetime
 from torrent_stats.db.models import TaskDocument
 from torrent_stats.db.repository import TaskRepository, TorrentMetadataRepository
 from torrent_stats.schemas import TaskClaimResponse
+from torrent_stats.services.hit_counter import HitCounterService
 from torrent_stats.settings import WorkerSettings
 
 logger = logging.getLogger("torrent_stats.worker")
@@ -17,10 +18,12 @@ class TaskClaimController:
         task_repository: TaskRepository,
         torrent_repository: TorrentMetadataRepository,
         worker_settings: WorkerSettings,
+        hit_counter: HitCounterService | None = None,
     ) -> None:
         self.task_repo = task_repository
         self.torrent_repo = torrent_repository
         self.worker_settings = worker_settings
+        self.hit_counter = hit_counter or HitCounterService()
 
     def claim_task(self) -> TaskClaimResponse | None:
         now = datetime.now(UTC)
@@ -74,9 +77,13 @@ class TaskClaimController:
             logger.info("No claimable tasks available.")
             return None
 
-        # Prioritize scrape_torrent over scrape_stats, then by creation date
+        # Prioritize scrape_torrent over scrape_stats, ordered by highest hit count to lowest, then creation date
         candidates.sort(
-            key=lambda x: (0 if x.task_type == "scrape_torrent" else 1, x.created_at)
+            key=lambda x: (
+                0 if x.task_type == "scrape_torrent" else 1,
+                -self.hit_counter.get_hits(x.info_hash),
+                x.created_at,
+            )
         )
 
         task = candidates[0]

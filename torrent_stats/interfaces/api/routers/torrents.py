@@ -43,5 +43,6 @@ def get_torrent(
     trackers: Annotated[
         list[str] | None, Query(description="Custom tracker URLs")
     ] = None,
+    record_hit: Annotated[bool, Query(description="Whether to record a hit")] = True,
 ):
-    return controller.get_torrent(hash, trackers)
+    return controller.get_torrent(hash, trackers, record_hit=record_hit)

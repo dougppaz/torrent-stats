@@ -29,9 +29,11 @@ class TorrentController:
         self.storage_manager = storage_manager
 
     def get_torrent(
-        self, hash: str, trackers: list[str] | None = None
+        self, hash: str, trackers: list[str] | None = None, record_hit: bool = True
     ) -> TorrentDetailResponse:
-        total_hits, last_hit_at = self.hit_counter.record_hit(hash)
+        total_hits, last_hit_at = self.hit_counter.record_hit(
+            hash, record_hit=record_hit
+        )
         current_request_timestamp = last_hit_at
 
         torrent, _ = self.torrent_repository.get_or_create(
