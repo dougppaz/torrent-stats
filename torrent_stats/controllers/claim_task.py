@@ -4,7 +4,11 @@ import logging
 from datetime import UTC, datetime
 
 from torrent_stats.db.models import TaskDocument
-from torrent_stats.db.repository import TaskRepository, TorrentMetadataRepository
+from torrent_stats.db.repository import (
+    TaskRepository,
+    TorrentMetadataRepository,
+    TrackerStatsRepository,
+)
 from torrent_stats.schemas import TaskClaimResponse
 from torrent_stats.services.hit_counter import HitCounterService
 from torrent_stats.settings import WorkerSettings
@@ -17,11 +21,13 @@ class TaskClaimController:
         self,
         task_repository: TaskRepository,
         torrent_repository: TorrentMetadataRepository,
+        tracker_stats_repository: TrackerStatsRepository,
         worker_settings: WorkerSettings,
         hit_counter: HitCounterService,
     ) -> None:
         self.task_repo = task_repository
         self.torrent_repo = torrent_repository
+        self.tracker_stats_repo = tracker_stats_repository
         self.worker_settings = worker_settings
         self.hit_counter = hit_counter
 
@@ -108,9 +114,9 @@ class TaskClaimController:
 
         trackers: list[str] = []
         if task.task_type == "scrape_torrent":
-            torrent = self.torrent_repo.find_by_info_hash(task.info_hash)
-            if torrent and torrent.tracker_stats:
-                trackers = [ts.tracker_url for ts in torrent.tracker_stats]
+            tracker_docs = self.tracker_stats_repo.find_by_info_hash(task.info_hash)
+            if tracker_docs:
+                trackers = [ts.tracker_url for ts in tracker_docs]
         elif task.task_type == "scrape_stats" and task.tracker_url:
             trackers = [task.tracker_url]
 

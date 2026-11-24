@@ -2,8 +2,12 @@ from __future__ import annotations
 
 from datetime import UTC, datetime
 
-from torrent_stats.db.models import TaskDocument, TrackerStat
-from torrent_stats.db.repository import TaskRepository, TorrentMetadataRepository
+from torrent_stats.db.models import TaskDocument
+from torrent_stats.db.repository import (
+    TaskRepository,
+    TorrentMetadataRepository,
+    TrackerStatsRepository,
+)
 from torrent_stats.schemas import (
     TaskResponse,
     TorrentDetailResponse,
@@ -20,11 +24,13 @@ class TorrentController:
         self,
         torrent_repository: TorrentMetadataRepository,
         task_repository: TaskRepository,
+        tracker_stats_repository: TrackerStatsRepository,
         hit_counter: HitCounterService,
         storage_manager: StorageManager,
     ) -> None:
         self.torrent_repository = torrent_repository
         self.task_repository = task_repository
+        self.tracker_stats_repo = tracker_stats_repository
         self.hit_counter = hit_counter
         self.storage_manager = storage_manager
 
@@ -81,21 +87,15 @@ class TorrentController:
         target_trackers = (
             trackers if trackers is not None else trackers_settings.default_trackers
         )
+        existing_tracker_docs = self.tracker_stats_repo.find_by_info_hash(hash)
         if target_trackers:
-            existing_tracker_urls = {ts.tracker_url for ts in torrent.tracker_stats}
+            existing_tracker_urls = {ts.tracker_url for ts in existing_tracker_docs}
             for tr in target_trackers:
                 if tr not in existing_tracker_urls:
-                    torrent.tracker_stats.append(
-                        TrackerStat(
-                            tracker_url=tr,
-                            seeds=None,
-                            peers=None,
-                            updated_at=None,
-                        )
-                    )
-            self.torrent_repository.save(torrent)
+                    self.tracker_stats_repo.get_or_create(hash, tr)
+            existing_tracker_docs = self.tracker_stats_repo.find_by_info_hash(hash)
 
-        all_tracker_urls = {ts.tracker_url for ts in torrent.tracker_stats}
+        all_tracker_urls = {ts.tracker_url for ts in existing_tracker_docs}
         for tr in all_tracker_urls:
             stat_task = next(
                 (
@@ -179,7 +179,7 @@ class TorrentController:
                     peers=ts.peers,
                     updated_at=ts.updated_at,
                 )
-                for ts in torrent.tracker_stats
+                for ts in existing_tracker_docs
             ],
             tasks=[
                 TaskResponse(

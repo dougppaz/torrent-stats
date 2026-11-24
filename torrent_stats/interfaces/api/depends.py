@@ -8,6 +8,7 @@ from torrent_stats.db.client import CouchDBClient
 from torrent_stats.db.repository import (
     TaskRepository,
     TorrentMetadataRepository,
+    TrackerStatsRepository,
     WorkerKeyRepository,
 )
 from torrent_stats.services.hit_counter import HitCounterService
@@ -23,9 +24,16 @@ def get_tasks_couchdb_client() -> CouchDBClient:
     return CouchDBClient(db_name=couchdb_settings.couchdb_tasks_db_name)
 
 
+def get_trackers_couchdb_client() -> CouchDBClient:
+    return CouchDBClient(db_name=couchdb_settings.couchdb_trackers_db_name)
+
+
 CouchDBClientDepends: TypeAlias = Annotated[CouchDBClient, Depends(get_couchdb_client)]
 TasksCouchDBClientDepends: TypeAlias = Annotated[
     CouchDBClient, Depends(get_tasks_couchdb_client)
+]
+TrackersCouchDBClientDepends: TypeAlias = Annotated[
+    CouchDBClient, Depends(get_trackers_couchdb_client)
 ]
 
 
@@ -39,6 +47,12 @@ def get_task_repository(
     client: TasksCouchDBClientDepends,
 ) -> TaskRepository:
     return TaskRepository(client=client)
+
+
+def get_tracker_stats_repository(
+    client: TrackersCouchDBClientDepends,
+) -> TrackerStatsRepository:
+    return TrackerStatsRepository(client=client)
 
 
 def get_worker_key_repository(
@@ -75,6 +89,9 @@ HitCounterServiceDepends: TypeAlias = Annotated[
 ]
 StorageManagerDepends: TypeAlias = Annotated[
     StorageManager, Depends(get_storage_manager)
+]
+TrackerStatsRepositoryDepends: TypeAlias = Annotated[
+    TrackerStatsRepository, Depends(get_tracker_stats_repository)
 ]
 TaskFailureControllerDepends: TypeAlias = Annotated[
     TaskFailureController, Depends(get_task_failure_controller)

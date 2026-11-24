@@ -9,6 +9,7 @@ from torrent_stats.interfaces.api.depends import (
     StorageManagerDepends,
     TaskRepositoryDepends,
     TorrentRepositoryDepends,
+    TrackerStatsRepositoryDepends,
 )
 from torrent_stats.schemas import TorrentDetailResponse, ValidatedInfoHash
 
@@ -18,12 +19,14 @@ router = APIRouter(prefix="/torrents", tags=["torrents"])
 def get_torrent_controller(
     torrent_repository: TorrentRepositoryDepends,
     task_repository: TaskRepositoryDepends,
+    tracker_stats_repository: TrackerStatsRepositoryDepends,
     hit_counter: HitCounterServiceDepends,
     storage_manager: StorageManagerDepends,
 ) -> TorrentController:
     return TorrentController(
         torrent_repository=torrent_repository,
         task_repository=task_repository,
+        tracker_stats_repository=tracker_stats_repository,
         hit_counter=hit_counter,
         storage_manager=storage_manager,
     )

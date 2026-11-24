@@ -24,6 +24,7 @@ from torrent_stats.interfaces.api.depends import (
     TaskFailureControllerDepends,
     TaskRepositoryDepends,
     TorrentRepositoryDepends,
+    TrackerStatsRepositoryDepends,
     WorkerKeyRepositoryDepends,
 )
 from torrent_stats.schemas import (
@@ -61,11 +62,13 @@ def verify_worker_key(
 def get_task_claim_controller(
     task_repository: TaskRepositoryDepends,
     torrent_repository: TorrentRepositoryDepends,
+    tracker_stats_repository: TrackerStatsRepositoryDepends,
     hit_counter: HitCounterServiceDepends,
 ) -> TaskClaimController:
     return TaskClaimController(
         task_repository=task_repository,
         torrent_repository=torrent_repository,
+        tracker_stats_repository=tracker_stats_repository,
         worker_settings=worker_settings,
         hit_counter=hit_counter,
     )
@@ -84,11 +87,11 @@ def get_torrent_upload_controller(
 
 
 def get_tracker_stats_controller(
-    torrent_repository: TorrentRepositoryDepends,
+    tracker_stats_repository: TrackerStatsRepositoryDepends,
     task_repository: TaskRepositoryDepends,
 ) -> TrackerStatsController:
     return TrackerStatsController(
-        torrent_repository=torrent_repository,
+        tracker_stats_repository=tracker_stats_repository,
         task_repository=task_repository,
     )
 
