@@ -31,7 +31,7 @@ class BaseRepository(Generic[T]):
         return res
 
     def save(self, instance: T) -> T:
-        data = instance.model_dump(by_alias=True)
+        data = instance.model_dump(mode="json", by_alias=True)
         if (
             not data.get("_id")
             and hasattr(instance, "info_hash")
@@ -177,16 +177,16 @@ class TaskRepository(BaseRepository[TaskDocument]):
         self,
         task_id: str,
         status: str,
-        lease_expires_at: str | None = None,
-        claimed_at: str | None = None,
-        last_attempt_at: str | None = None,
+        lease_expires_at: datetime | None = None,
+        claimed_at: datetime | None = None,
+        last_attempt_at: datetime | None = None,
         error_message: str | None = None,
     ) -> TaskDocument | None:
         task = self.get(task_id)
         if not task:
             return None
         task.status = status
-        now = datetime.now(UTC).isoformat()
+        now = datetime.now(UTC)
         task.updated_at = now
         if lease_expires_at is not None:
             task.lease_expires_at = lease_expires_at
@@ -231,7 +231,7 @@ class TrackerStatsRepository(BaseRepository[TrackerStatDocument]):
         self, info_hash: str, tracker_url: str, seeds: int, peers: int
     ) -> TrackerStatDocument:
         doc = self.find_by_info_hash_and_tracker(info_hash, tracker_url)
-        now = datetime.now(UTC).isoformat()
+        now = datetime.now(UTC)
         if doc:
             doc.seeds = seeds
             doc.peers = peers
@@ -253,7 +253,7 @@ class TrackerStatsRepository(BaseRepository[TrackerStatDocument]):
         self, info_hash: str, tracker_url: str
     ) -> TrackerStatDocument:
         doc = self.find_by_info_hash_and_tracker(info_hash, tracker_url)
-        now = datetime.now(UTC).isoformat()
+        now = datetime.now(UTC)
         if doc:
             doc.consecutive_failures += 1
             doc.updated_at = now

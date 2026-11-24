@@ -26,7 +26,7 @@ class TrackerStatsController:
         seeds: int | None = 0,
         peers: int | None = 0,
     ) -> ActionSuccessResponse:
-        now = datetime.now(UTC).isoformat()
+        now = datetime.now(UTC)
 
         if success:
             self.tracker_stats_repo.update_stats(

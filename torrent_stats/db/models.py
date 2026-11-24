@@ -15,7 +15,7 @@ class TrackerStat(BaseModel):
     tracker_url: str
     seeds: int | None = None
     peers: int | None = None
-    updated_at: str | None = None
+    updated_at: datetime | None = None
     consecutive_failures: int = 0
 
 
@@ -23,11 +23,11 @@ class TaskItem(BaseModel):
     task_id: str
     task_type: str = "scrape_torrent"  # scrape_torrent, scrape_stats
     status: str = "pending"  # pending, claimed, scraping, completed, failed
-    created_at: str = Field(default_factory=lambda: datetime.now(UTC).isoformat())
-    claimed_at: str | None = None
-    lease_expires_at: str | None = None
-    last_attempt_at: str | None = None
-    updated_at: str | None = None
+    created_at: datetime = Field(default_factory=lambda: datetime.now(UTC))
+    claimed_at: datetime | None = None
+    lease_expires_at: datetime | None = None
+    last_attempt_at: datetime | None = None
+    updated_at: datetime | None = None
     error_message: str | None = None
 
 
@@ -37,14 +37,14 @@ class TaskDocument(BaseModel):
     info_hash: str
     task_type: str = "scrape_torrent"  # scrape_torrent, scrape_stats
     status: str = "pending"  # pending, claimed, scraping, completed, failed
-    created_at: str = Field(default_factory=lambda: datetime.now(UTC).isoformat())
-    claimed_at: str | None = None
-    lease_expires_at: str | None = None
-    last_attempt_at: str | None = None
-    updated_at: str | None = None
+    created_at: datetime = Field(default_factory=lambda: datetime.now(UTC))
+    claimed_at: datetime | None = None
+    lease_expires_at: datetime | None = None
+    last_attempt_at: datetime | None = None
+    updated_at: datetime | None = None
     error_message: str | None = None
     tracker_url: str | None = None
-    tracker_updated_at: str | None = None
+    tracker_updated_at: datetime | None = None
 
     @model_validator(mode="after")
     def set_id(self) -> TaskDocument:
@@ -63,7 +63,7 @@ class TrackerStatDocument(BaseModel):
     tracker_url: str
     seeds: int | None = None
     peers: int | None = None
-    updated_at: str | None = None
+    updated_at: datetime | None = None
     consecutive_failures: int = 0
 
     @model_validator(mode="after")
@@ -85,7 +85,7 @@ class TorrentMetadata(BaseModel):
     storage_params: dict[str, Any] | None = None
     files: list[TorrentFile] | None = None
     tasks: list[TaskItem] = Field(default_factory=list)
-    created_at: str = Field(default_factory=lambda: datetime.now(UTC).isoformat())
+    created_at: datetime = Field(default_factory=lambda: datetime.now(UTC))
 
     @model_validator(mode="after")
     def set_id(self) -> TorrentMetadata:
@@ -101,7 +101,7 @@ class WorkerKey(BaseModel):
     rev: str | None = Field(alias="_rev", default=None)
     key_hash: str
     description: str = ""
-    created_at: str = Field(default_factory=lambda: datetime.now(UTC).isoformat())
+    created_at: datetime = Field(default_factory=lambda: datetime.now(UTC))
 
     @model_validator(mode="after")
     def set_id(self) -> WorkerKey:

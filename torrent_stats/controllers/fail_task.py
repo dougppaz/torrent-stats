@@ -24,7 +24,7 @@ class TaskFailureController:
             task_id=task_id,
             status="failed",
             error_message=error_message,
-            last_attempt_at=datetime.now(UTC).isoformat(),
+            last_attempt_at=datetime.now(UTC),
         )
         if not updated:
             return None

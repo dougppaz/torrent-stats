@@ -80,7 +80,7 @@ class TorrentUploadController:
 
         tasks = self.task_repo.find_by_info_hash(info_hash)
         scrape_task = next((t for t in tasks if t.task_type == "scrape_torrent"), None)
-        now = datetime.now(UTC).isoformat()
+        now = datetime.now(UTC)
         if scrape_task:
             scrape_task.status = "completed"
             scrape_task.updated_at = now

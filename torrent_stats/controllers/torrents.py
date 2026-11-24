@@ -40,7 +40,7 @@ class TorrentController:
         total_hits, last_hit_at = self.hit_counter.record_hit(
             hash, record_hit=record_hit
         )
-        current_request_timestamp = datetime.now(UTC).isoformat()
+        current_request_timestamp = datetime.now(UTC)
 
         torrent, _ = self.torrent_repository.get_or_create(hash)
 
@@ -63,26 +63,18 @@ class TorrentController:
         elif (
             scrape_torrent_task.status == "failed"
             and scrape_torrent_task.last_attempt_at
+            and (now - scrape_torrent_task.last_attempt_at).total_seconds()
+            >= worker_settings.worker_scrape_torrent_failure_cooldown_seconds
         ):
-            try:
-                last_attempt = datetime.fromisoformat(
-                    scrape_torrent_task.last_attempt_at
+            self.task_repository.delete(scrape_torrent_task.id)
+            self.task_repository.save(
+                TaskDocument(
+                    info_hash=hash,
+                    task_type="scrape_torrent",
+                    status="pending",
+                    created_at=current_request_timestamp,
                 )
-                if (
-                    (now - last_attempt).total_seconds()
-                    >= worker_settings.worker_scrape_torrent_failure_cooldown_seconds
-                ):
-                    self.task_repository.delete(scrape_torrent_task.id)
-                    self.task_repository.save(
-                        TaskDocument(
-                            info_hash=hash,
-                            task_type="scrape_torrent",
-                            status="pending",
-                            created_at=current_request_timestamp,
-                        )
-                    )
-            except (ValueError, TypeError):
-                pass
+            )
 
         target_trackers = (
             trackers if trackers is not None else trackers_settings.default_trackers
@@ -117,23 +109,18 @@ class TorrentController:
                     )
                 )
             elif stat_task.status in ("completed", "failed"):
-                ref_ts = (
+                ref_dt = (
                     stat_task.tracker_updated_at
                     or stat_task.last_attempt_at
                     or stat_task.updated_at
                     or stat_task.created_at
                 )
                 should_renew = True
-                if ref_ts:
-                    try:
-                        ref_dt = datetime.fromisoformat(ref_ts)
-                        if (
-                            (now - ref_dt).total_seconds()
-                            < worker_settings.worker_scrape_stats_cooldown_seconds
-                        ):
-                            should_renew = False
-                    except (ValueError, TypeError):
-                        pass
+                if ref_dt and (
+                    (now - ref_dt).total_seconds()
+                    < worker_settings.worker_scrape_stats_cooldown_seconds
+                ):
+                    should_renew = False
                 if should_renew:
                     self.task_repository.delete(stat_task.id)
                     self.task_repository.save(
