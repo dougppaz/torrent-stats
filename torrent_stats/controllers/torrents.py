@@ -35,7 +35,6 @@ class TorrentController:
             hash, record_hit=record_hit
         )
         current_request_timestamp = datetime.now(UTC).isoformat()
-        resp_last_hit = last_hit_at
 
         torrent, _ = self.torrent_repository.get_or_create(hash)
 
@@ -164,7 +163,7 @@ class TorrentController:
             storage_params=torrent.storage_params,
             download_url=download_url,
             total_hits=total_hits,
-            last_hit_at=resp_last_hit,
+            last_hit_at=last_hit_at,
             files=(
                 [
                     TorrentFileResponse(path=f.path, length=f.length)
