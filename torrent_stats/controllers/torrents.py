@@ -76,13 +76,14 @@ class TorrentController:
                 )
             )
 
-        target_trackers = (
-            trackers if trackers is not None else trackers_settings.default_trackers
-        )
+        combined_trackers = set(trackers_settings.default_trackers)
+        if trackers is not None:
+            combined_trackers.update(trackers)
+
         existing_tracker_docs = self.tracker_stats_repo.find_by_info_hash(hash)
-        if target_trackers:
+        if combined_trackers:
             existing_tracker_urls = {ts.tracker_url for ts in existing_tracker_docs}
-            for tr in target_trackers:
+            for tr in combined_trackers:
                 if tr not in existing_tracker_urls:
                     self.tracker_stats_repo.get_or_create(hash, tr)
             existing_tracker_docs = self.tracker_stats_repo.find_by_info_hash(hash)
