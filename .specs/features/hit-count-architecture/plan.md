@@ -1,6 +1,6 @@
 # Hit Count Architecture Refactoring (Decoupled Redis Hit Counter & Priority Worker Claim)
 
-**Status**: Draft / Awaiting Approval
+**Approved**: 2026-11-21 - user: "ok"
 
 ## Problem
 
@@ -64,6 +64,6 @@ sequenceDiagram
 
 | Assumption | Chosen default | Rationale | Confirmed? |
 | --- | --- | --- | --- |
-| Default value of `record_hit` query param | `True` | Standard API behavior records a hit on detail retrieval | Pending approval |
+| Default value of `record_hit` query param | `True` | Standard API behavior records a hit on detail retrieval | y |
 
 **Open questions:** None.
