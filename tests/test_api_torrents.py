@@ -4,12 +4,17 @@ from datetime import UTC, datetime
 from unittest.mock import patch
 
 from fastapi.testclient import TestClient
-from torrent_stats.db.models import TaskDocument, TorrentMetadata, TrackerStat
+from torrent_stats.db.models import (
+    TaskDocument,
+    TorrentMetadata,
+    TrackerStatDocument,
+)
 from torrent_stats.interfaces.api.depends import (
     get_hit_counter_service,
     get_storage_manager,
     get_task_repository,
     get_torrent_repository,
+    get_tracker_stats_repository,
 )
 from torrent_stats.interfaces.api.main import app
 
@@ -122,6 +127,15 @@ def test_get_torrent_with_default_trackers(mock_trackers_settings):
     app.dependency_overrides[get_task_repository] = lambda: mock_task_repo
     app.dependency_overrides[get_hit_counter_service] = lambda: mock_hit_counter
     app.dependency_overrides[get_storage_manager] = lambda: mock_storage
+    mock_tracker_stats_repo = __import__("unittest.mock").mock.MagicMock()
+    mock_tracker_stats_repo.find_by_info_hash.return_value = [
+        TrackerStatDocument(
+            info_hash=VALID_HASH, tracker_url="udp://default.tracker:1337"
+        )
+    ]
+    app.dependency_overrides[get_tracker_stats_repository] = lambda: (
+        mock_tracker_stats_repo
+    )
 
     try:
         response = client.get(f"/torrents/{VALID_HASH}")
@@ -312,7 +326,6 @@ def test_get_torrent_renew_scrape_stats_cooldown_expired():
     )
     meta = TorrentMetadata(
         info_hash=VALID_HASH,
-        tracker_stats=[TrackerStat(tracker_url="udp://tracker:1337", seeds=1, peers=1)],
     )
     mock_repo.get_or_create.return_value = (meta, False)
 
@@ -337,6 +350,15 @@ def test_get_torrent_renew_scrape_stats_cooldown_expired():
     app.dependency_overrides[get_task_repository] = lambda: mock_task_repo
     app.dependency_overrides[get_hit_counter_service] = lambda: mock_hit_counter
     app.dependency_overrides[get_storage_manager] = lambda: mock_storage
+    mock_tracker_stats_repo = __import__("unittest.mock").mock.MagicMock()
+    mock_tracker_stats_repo.find_by_info_hash.return_value = [
+        TrackerStatDocument(
+            info_hash=VALID_HASH, tracker_url="udp://tracker:1337", seeds=1, peers=1
+        )
+    ]
+    app.dependency_overrides[get_tracker_stats_repository] = lambda: (
+        mock_tracker_stats_repo
+    )
 
     try:
         response = client.get(f"/torrents/{VALID_HASH}")

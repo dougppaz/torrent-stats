@@ -4,7 +4,11 @@ import logging
 from datetime import UTC, datetime
 
 from torrent_stats.db.models import TaskDocument
-from torrent_stats.db.repository import TaskRepository, TorrentMetadataRepository
+from torrent_stats.db.repository import (
+    TaskRepository,
+    TorrentMetadataRepository,
+    TrackerStatsRepository,
+)
 from torrent_stats.schemas import TaskClaimResponse
 from torrent_stats.services.hit_counter import HitCounterService
 from torrent_stats.settings import WorkerSettings
@@ -17,11 +21,13 @@ class TaskClaimController:
         self,
         task_repository: TaskRepository,
         torrent_repository: TorrentMetadataRepository,
+        tracker_stats_repository: TrackerStatsRepository,
         worker_settings: WorkerSettings,
         hit_counter: HitCounterService,
     ) -> None:
         self.task_repo = task_repository
         self.torrent_repo = torrent_repository
+        self.tracker_stats_repo = tracker_stats_repository
         self.worker_settings = worker_settings
         self.hit_counter = hit_counter
 
@@ -36,13 +42,12 @@ class TaskClaimController:
         for task in all_tasks:
             # Check failure cooldown
             if task.last_attempt_at and task.status == "failed":
-                last_attempt = datetime.fromisoformat(task.last_attempt_at)
                 cooldown_seconds = (
                     self.worker_settings.worker_scrape_torrent_failure_cooldown_seconds
                     if task.task_type == "scrape_torrent"
                     else self.worker_settings.worker_scrape_stats_failure_cooldown_seconds
                 )
-                if (now - last_attempt).total_seconds() < cooldown_seconds:
+                if (now - task.last_attempt_at).total_seconds() < cooldown_seconds:
                     logger.debug(
                         "Task %s skipped: failure cooldown active (last attempt at %s).",
                         task.id,
@@ -50,23 +55,19 @@ class TaskClaimController:
                     )
                     continue
 
-            # Check stats update cooldown (6h) for scrape_stats tasks using denormalized tracker_updated_at
             if (
                 task.task_type == "scrape_stats"
                 and task.tracker_url
                 and task.tracker_updated_at is not None
+                and (now - task.tracker_updated_at).total_seconds()
+                < self.worker_settings.worker_scrape_stats_cooldown_seconds
             ):
-                tracker_updated = datetime.fromisoformat(task.tracker_updated_at)
-                if (
-                    (now - tracker_updated).total_seconds()
-                    < self.worker_settings.worker_scrape_stats_cooldown_seconds
-                ):
-                    logger.debug(
-                        "Task %s skipped: stats update cooldown active for tracker %s.",
-                        task.id,
-                        task.tracker_url,
-                    )
-                    continue
+                logger.debug(
+                    "Task %s skipped: stats update cooldown active for tracker %s.",
+                    task.id,
+                    task.tracker_url,
+                )
+                continue
 
             logger.debug(
                 "Task %s (type: %s) added as claim candidate.", task.id, task.task_type
@@ -95,22 +96,22 @@ class TaskClaimController:
         )
 
         lease_expires = now.timestamp() + self.worker_settings.worker_task_lease_seconds
-        lease_expires_at = datetime.fromtimestamp(lease_expires, UTC).isoformat()
+        lease_expires_at = datetime.fromtimestamp(lease_expires, UTC)
         updated = self.task_repo.update_task_status(
             task_id=task.id,
             status="claimed",
             lease_expires_at=lease_expires_at,
-            claimed_at=now.isoformat(),
-            last_attempt_at=now.isoformat(),
+            claimed_at=now,
+            last_attempt_at=now,
         )
         if updated:
             task = updated
 
         trackers: list[str] = []
         if task.task_type == "scrape_torrent":
-            torrent = self.torrent_repo.find_by_info_hash(task.info_hash)
-            if torrent and torrent.tracker_stats:
-                trackers = [ts.tracker_url for ts in torrent.tracker_stats]
+            tracker_docs = self.tracker_stats_repo.find_by_info_hash(task.info_hash)
+            if tracker_docs:
+                trackers = [ts.tracker_url for ts in tracker_docs]
         elif task.task_type == "scrape_stats" and task.tracker_url:
             trackers = [task.tracker_url]
 
@@ -129,6 +130,6 @@ class TaskClaimController:
             task_type=task.task_type,
             tracker_url=task.tracker_url,
             updated_at=task.tracker_updated_at,
-            lease_expires_at=task.lease_expires_at or "",
+            lease_expires_at=task.lease_expires_at,
             trackers=trackers,
         )

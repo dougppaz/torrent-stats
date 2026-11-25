@@ -7,7 +7,7 @@ from fastapi.testclient import TestClient
 from torrent_stats.db.models import (
     TaskDocument,
     TorrentMetadata,
-    TrackerStat,
+    TrackerStatDocument,
     WorkerKey,
 )
 from torrent_stats.interfaces.api.depends import (
@@ -15,6 +15,7 @@ from torrent_stats.interfaces.api.depends import (
     get_storage_manager,
     get_task_repository,
     get_torrent_repository,
+    get_tracker_stats_repository,
     get_worker_key_repository,
 )
 from torrent_stats.interfaces.api.main import app
@@ -94,7 +95,6 @@ def test_worker_claim_task_success():
     mock_task_repo.find_claimable.return_value = [task]
     mock_torrent_repo.find_by_info_hash.return_value = TorrentMetadata(
         info_hash="abc123456",
-        tracker_stats=[TrackerStat(tracker_url="udp://tracker.test:1337")],
     )
 
     def update_mock_task(
@@ -121,6 +121,15 @@ def test_worker_claim_task_success():
     app.dependency_overrides[get_worker_key_repository] = lambda: mock_worker_key_repo
     app.dependency_overrides[get_task_repository] = lambda: mock_task_repo
     app.dependency_overrides[get_torrent_repository] = lambda: mock_torrent_repo
+    mock_tracker_stats_repo = MagicMock()
+    mock_tracker_stats_repo.find_by_info_hash.return_value = [
+        TrackerStatDocument(
+            info_hash="abc123456", tracker_url="udp://tracker.test:1337"
+        )
+    ]
+    app.dependency_overrides[get_tracker_stats_repository] = lambda: (
+        mock_tracker_stats_repo
+    )
     app.dependency_overrides[get_hit_counter_service] = lambda: MagicMock(
         get_hits=lambda h: 0
     )
@@ -154,11 +163,17 @@ def test_worker_claim_task_expired_lease_and_cooldowns():
 
     torrent = TorrentMetadata(
         info_hash="abc999",
-        tracker_stats=[
-            TrackerStat(tracker_url="udp://tracker:1337", updated_at=recent)
-        ],
     )
     mock_torrent_repo.find_by_info_hash.return_value = torrent
+    mock_tracker_stats_repo = MagicMock()
+    mock_tracker_stats_repo.find_by_info_hash.return_value = [
+        TrackerStatDocument(
+            info_hash="abc999", tracker_url="udp://tracker:1337", updated_at=recent
+        )
+    ]
+    app.dependency_overrides[get_tracker_stats_repository] = lambda: (
+        mock_tracker_stats_repo
+    )
 
     task_expired = TaskDocument(
         _id="task-expired",
@@ -276,13 +291,6 @@ def test_worker_submit_tracker_stats_and_prune():
     mock_worker_key_repo.find_by_key_hash.return_value = WorkerKey(
         _id="hash1", key_hash="hash1"
     )
-    torrent = TorrentMetadata(
-        info_hash=VALID_HASH,
-        tracker_stats=[
-            TrackerStat(tracker_url="udp://tracker.test:1337", consecutive_failures=2)
-        ],
-    )
-    mock_torrent_repo.find_by_info_hash.return_value = torrent
     mock_task_repo.find_by_info_hash.return_value = [
         TaskDocument(
             _id="task-stats",
@@ -296,6 +304,16 @@ def test_worker_submit_tracker_stats_and_prune():
     app.dependency_overrides[get_worker_key_repository] = lambda: mock_worker_key_repo
     app.dependency_overrides[get_task_repository] = lambda: mock_task_repo
     app.dependency_overrides[get_torrent_repository] = lambda: mock_torrent_repo
+    mock_tracker_stats_repo = MagicMock()
+    mock_tracker_stats_repo.increment_failure.return_value = TrackerStatDocument(
+        _id="tr-1",
+        info_hash=VALID_HASH,
+        tracker_url="udp://tracker.test:1337",
+        consecutive_failures=3,
+    )
+    app.dependency_overrides[get_tracker_stats_repository] = lambda: (
+        mock_tracker_stats_repo
+    )
 
     try:
         # Submit failure (3rd consecutive failure -> should prune)
@@ -305,7 +323,7 @@ def test_worker_submit_tracker_stats_and_prune():
             json={"tracker_url": "udp://tracker.test:1337", "success": False},
         )
         assert response.status_code == 200
-        assert len(torrent.tracker_stats) == 0
+        mock_tracker_stats_repo.delete.assert_called_once()
 
         # Submit success for new tracker
         response2 = client.post(

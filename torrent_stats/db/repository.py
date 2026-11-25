@@ -10,7 +10,7 @@ from torrent_stats.db.crypto import hash_worker_key
 from torrent_stats.db.models import (
     TaskDocument,
     TorrentMetadata,
-    TrackerStat,
+    TrackerStatDocument,
     WorkerKey,
 )
 
@@ -31,7 +31,7 @@ class BaseRepository(Generic[T]):
         return res
 
     def save(self, instance: T) -> T:
-        data = instance.model_dump(by_alias=True)
+        data = instance.model_dump(mode="json", by_alias=True)
         if (
             not data.get("_id")
             and hasattr(instance, "info_hash")
@@ -71,31 +71,6 @@ class TorrentMetadataRepository(BaseRepository[TorrentMetadata]):
             torrent = TorrentMetadata(info_hash=info_hash)
             saved = self.save(torrent)
             return saved, True
-
-    def add_tracker_stats(
-        self, info_hash: str, tracker_urls: list[str]
-    ) -> TorrentMetadata:
-        torrent = self.find_by_info_hash(info_hash)
-        if not torrent:
-            torrent = TorrentMetadata(info_hash=info_hash)
-
-        existing_urls = {ts.tracker_url for ts in torrent.tracker_stats}
-        added = False
-        for tr in tracker_urls:
-            if tr not in existing_urls:
-                torrent.tracker_stats.append(
-                    TrackerStat(
-                        tracker_url=tr,
-                        seeds=None,
-                        peers=None,
-                        updated_at=None,
-                    )
-                )
-                existing_urls.add(tr)
-                added = True
-        if added:
-            return self.save(torrent)
-        return torrent
 
 
 class WorkerKeyRepository(BaseRepository[WorkerKey]):
@@ -202,16 +177,16 @@ class TaskRepository(BaseRepository[TaskDocument]):
         self,
         task_id: str,
         status: str,
-        lease_expires_at: str | None = None,
-        claimed_at: str | None = None,
-        last_attempt_at: str | None = None,
+        lease_expires_at: datetime | None = None,
+        claimed_at: datetime | None = None,
+        last_attempt_at: datetime | None = None,
         error_message: str | None = None,
     ) -> TaskDocument | None:
         task = self.get(task_id)
         if not task:
             return None
         task.status = status
-        now = datetime.now(UTC).isoformat()
+        now = datetime.now(UTC)
         task.updated_at = now
         if lease_expires_at is not None:
             task.lease_expires_at = lease_expires_at
@@ -222,3 +197,74 @@ class TaskRepository(BaseRepository[TaskDocument]):
         if error_message is not None:
             task.error_message = error_message
         return self.save(task)
+
+
+class TrackerStatsRepository(BaseRepository[TrackerStatDocument]):
+    def __init__(self, client: CouchDBClient) -> None:
+        super().__init__(TrackerStatDocument, client=client)
+
+    def find_by_info_hash(self, info_hash: str) -> list[TrackerStatDocument]:
+        docs = self.client.find_by_selector({"info_hash": info_hash})
+        return [TrackerStatDocument.model_validate(doc) for doc in docs]
+
+    def find_by_info_hash_and_tracker(
+        self, info_hash: str, tracker_url: str
+    ) -> TrackerStatDocument | None:
+        docs = self.client.find_by_selector(
+            {"info_hash": info_hash, "tracker_url": tracker_url}
+        )
+        if docs:
+            return TrackerStatDocument.model_validate(docs[0])
+        return None
+
+    def get_or_create(
+        self, info_hash: str, tracker_url: str
+    ) -> tuple[TrackerStatDocument, bool]:
+        existing = self.find_by_info_hash_and_tracker(info_hash, tracker_url)
+        if existing:
+            return existing, False
+        doc = TrackerStatDocument(info_hash=info_hash, tracker_url=tracker_url)
+        saved = self.save(doc)
+        return saved, True
+
+    def update_stats(
+        self, info_hash: str, tracker_url: str, seeds: int, peers: int
+    ) -> TrackerStatDocument:
+        doc = self.find_by_info_hash_and_tracker(info_hash, tracker_url)
+        now = datetime.now(UTC)
+        if doc:
+            doc.seeds = seeds
+            doc.peers = peers
+            doc.updated_at = now
+            doc.consecutive_failures = 0
+            return self.save(doc)
+        else:
+            doc = TrackerStatDocument(
+                info_hash=info_hash,
+                tracker_url=tracker_url,
+                seeds=seeds,
+                peers=peers,
+                updated_at=now,
+                consecutive_failures=0,
+            )
+            return self.save(doc)
+
+    def increment_failure(
+        self, info_hash: str, tracker_url: str
+    ) -> TrackerStatDocument:
+        doc = self.find_by_info_hash_and_tracker(info_hash, tracker_url)
+        now = datetime.now(UTC)
+        if doc:
+            doc.consecutive_failures += 1
+            doc.updated_at = now
+            return self.save(doc)
+        else:
+            doc = TrackerStatDocument(
+                info_hash=info_hash,
+                tracker_url=tracker_url,
+                seeds=0,
+                peers=0,
+                updated_at=now,
+                consecutive_failures=1,
+            )
+            return self.save(doc)

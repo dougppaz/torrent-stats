@@ -2,8 +2,12 @@ from __future__ import annotations
 
 from datetime import UTC, datetime
 
-from torrent_stats.db.models import TaskDocument, TrackerStat
-from torrent_stats.db.repository import TaskRepository, TorrentMetadataRepository
+from torrent_stats.db.models import TaskDocument
+from torrent_stats.db.repository import (
+    TaskRepository,
+    TorrentMetadataRepository,
+    TrackerStatsRepository,
+)
 from torrent_stats.schemas import (
     TaskResponse,
     TorrentDetailResponse,
@@ -20,11 +24,13 @@ class TorrentController:
         self,
         torrent_repository: TorrentMetadataRepository,
         task_repository: TaskRepository,
+        tracker_stats_repository: TrackerStatsRepository,
         hit_counter: HitCounterService,
         storage_manager: StorageManager,
     ) -> None:
         self.torrent_repository = torrent_repository
         self.task_repository = task_repository
+        self.tracker_stats_repo = tracker_stats_repository
         self.hit_counter = hit_counter
         self.storage_manager = storage_manager
 
@@ -34,7 +40,7 @@ class TorrentController:
         total_hits, last_hit_at = self.hit_counter.record_hit(
             hash, record_hit=record_hit
         )
-        current_request_timestamp = datetime.now(UTC).isoformat()
+        current_request_timestamp = datetime.now(UTC)
 
         torrent, _ = self.torrent_repository.get_or_create(hash)
 
@@ -57,45 +63,32 @@ class TorrentController:
         elif (
             scrape_torrent_task.status == "failed"
             and scrape_torrent_task.last_attempt_at
+            and (now - scrape_torrent_task.last_attempt_at).total_seconds()
+            >= worker_settings.worker_scrape_torrent_failure_cooldown_seconds
         ):
-            try:
-                last_attempt = datetime.fromisoformat(
-                    scrape_torrent_task.last_attempt_at
+            self.task_repository.delete(scrape_torrent_task.id)
+            self.task_repository.save(
+                TaskDocument(
+                    info_hash=hash,
+                    task_type="scrape_torrent",
+                    status="pending",
+                    created_at=current_request_timestamp,
                 )
-                if (
-                    (now - last_attempt).total_seconds()
-                    >= worker_settings.worker_scrape_torrent_failure_cooldown_seconds
-                ):
-                    self.task_repository.delete(scrape_torrent_task.id)
-                    self.task_repository.save(
-                        TaskDocument(
-                            info_hash=hash,
-                            task_type="scrape_torrent",
-                            status="pending",
-                            created_at=current_request_timestamp,
-                        )
-                    )
-            except (ValueError, TypeError):
-                pass
+            )
 
-        target_trackers = (
-            trackers if trackers is not None else trackers_settings.default_trackers
-        )
-        if target_trackers:
-            existing_tracker_urls = {ts.tracker_url for ts in torrent.tracker_stats}
-            for tr in target_trackers:
+        combined_trackers = set(trackers_settings.default_trackers)
+        if trackers is not None:
+            combined_trackers.update(trackers)
+
+        existing_tracker_docs = self.tracker_stats_repo.find_by_info_hash(hash)
+        if combined_trackers:
+            existing_tracker_urls = {ts.tracker_url for ts in existing_tracker_docs}
+            for tr in combined_trackers:
                 if tr not in existing_tracker_urls:
-                    torrent.tracker_stats.append(
-                        TrackerStat(
-                            tracker_url=tr,
-                            seeds=None,
-                            peers=None,
-                            updated_at=None,
-                        )
-                    )
-            self.torrent_repository.save(torrent)
+                    self.tracker_stats_repo.get_or_create(hash, tr)
+            existing_tracker_docs = self.tracker_stats_repo.find_by_info_hash(hash)
 
-        all_tracker_urls = {ts.tracker_url for ts in torrent.tracker_stats}
+        all_tracker_urls = {ts.tracker_url for ts in existing_tracker_docs}
         for tr in all_tracker_urls:
             stat_task = next(
                 (
@@ -117,23 +110,18 @@ class TorrentController:
                     )
                 )
             elif stat_task.status in ("completed", "failed"):
-                ref_ts = (
+                ref_dt = (
                     stat_task.tracker_updated_at
                     or stat_task.last_attempt_at
                     or stat_task.updated_at
                     or stat_task.created_at
                 )
                 should_renew = True
-                if ref_ts:
-                    try:
-                        ref_dt = datetime.fromisoformat(ref_ts)
-                        if (
-                            (now - ref_dt).total_seconds()
-                            < worker_settings.worker_scrape_stats_cooldown_seconds
-                        ):
-                            should_renew = False
-                    except (ValueError, TypeError):
-                        pass
+                if ref_dt and (
+                    (now - ref_dt).total_seconds()
+                    < worker_settings.worker_scrape_stats_cooldown_seconds
+                ):
+                    should_renew = False
                 if should_renew:
                     self.task_repository.delete(stat_task.id)
                     self.task_repository.save(
@@ -179,7 +167,7 @@ class TorrentController:
                     peers=ts.peers,
                     updated_at=ts.updated_at,
                 )
-                for ts in torrent.tracker_stats
+                for ts in existing_tracker_docs
             ],
             tasks=[
                 TaskResponse(

@@ -5,6 +5,7 @@ from unittest.mock import MagicMock, patch
 from torrent_stats.db.repository import (
     TaskRepository,
     TorrentMetadataRepository,
+    TrackerStatsRepository,
     WorkerKeyRepository,
 )
 
@@ -122,20 +123,59 @@ def test_task_repository_find_claimable_fallback():
     assert tasks[0].id == "t1"
 
 
-def test_torrent_metadata_add_tracker_stats():
+def test_tracker_stats_repository():
     mock_client = MagicMock()
-    repo = TorrentMetadataRepository(client=mock_client)
-    # Exists with one tracker
-    mock_client.get_doc.return_value = {
-        "_id": "hash1",
-        "info_hash": "hash1",
-        "tracker_stats": [
-            {"tracker_url": "udp://tracker1.com", "seeds": 10, "peers": 5}
-        ],
-    }
-    mock_client.save_doc.return_value = {"id": "hash1", "rev": "2-rev"}
-    res = repo.add_tracker_stats("hash1", ["udp://tracker1.com", "udp://tracker2.com"])
-    assert len(res.tracker_stats) == 2
+    repo = TrackerStatsRepository(client=mock_client)
+    mock_client.find_by_selector.return_value = [
+        {
+            "_id": "tracker-hash1-123",
+            "info_hash": "hash1",
+            "tracker_url": "udp://tracker.com",
+            "seeds": 10,
+            "peers": 5,
+            "consecutive_failures": 0,
+        }
+    ]
+    docs = repo.find_by_info_hash("hash1")
+    assert len(docs) == 1
+    assert docs[0].seeds == 10
+
+    mock_client.find_by_selector.return_value = []
+    mock_client.save_doc.return_value = {"id": "tracker-hash1-123", "rev": "1-rev"}
+    updated = repo.update_stats("hash1", "udp://tracker.com", 20, 10)
+    assert updated.seeds == 20
+    assert updated.consecutive_failures == 0
+
+    failed = repo.increment_failure("hash1", "udp://tracker.com")
+    assert failed.consecutive_failures == 1
+
+
+def test_tracker_stats_repository_get_or_create_and_failures():
+    mock_client = MagicMock()
+    repo = TrackerStatsRepository(client=mock_client)
+    # Existing
+    mock_client.find_by_selector.return_value = [
+        {
+            "_id": "tracker-hash1-123",
+            "info_hash": "hash1",
+            "tracker_url": "udp://tracker.com",
+            "consecutive_failures": 1,
+        }
+    ]
+    _doc, created = repo.get_or_create("hash1", "udp://tracker.com")
+    assert not created
+
+    # New
+    mock_client.find_by_selector.return_value = []
+    mock_client.save_doc.return_value = {"id": "tracker-hash2-123", "rev": "1-rev"}
+    _doc, created = repo.get_or_create("hash2", "udp://tracker.new")
+    assert created
+
+    # Increment failure new
+    mock_client.find_by_selector.return_value = []
+    mock_client.save_doc.return_value = {"id": "tracker-hash3-123", "rev": "1-rev"}
+    failed_new = repo.increment_failure("hash3", "udp://tracker.fail")
+    assert failed_new.consecutive_failures == 1
 
 
 def test_couchdb_client_save_doc_retry():

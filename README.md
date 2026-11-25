@@ -90,6 +90,8 @@ The API service can be configured using the following environment variables (or 
 | --- | --- | --- |
 | `COUCHDB_URL` | `http://admin:admin@localhost:5984/` | CouchDB connection URL |
 | `COUCHDB_DB_NAME` | `torrent_stats` | CouchDB database name |
+| `COUCHDB_TASKS_DB_NAME` | `torrent_stats_tasks` | CouchDB tasks database name |
+| `COUCHDB_TRACKERS_DB_NAME` | `torrent_trackers_stats` | CouchDB tracker stats database name |
 | `REDIS_URL` | `redis://localhost:6379/0` | Redis connection URL |
 | `WORKER_SCRAPE_STATS_FAILURE_COOLDOWN_SECONDS` | `10800` (3 hours) | Failure cooldown before retrying a failed tracker stats scrape task |
 | `WORKER_SCRAPE_TORRENT_FAILURE_COOLDOWN_SECONDS` | `3600` (1 hour) | Failure cooldown before retrying a failed torrent scrape task |
