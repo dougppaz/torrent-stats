@@ -31,6 +31,47 @@ class TaskClaimController:
         self.worker_settings = worker_settings
         self.hit_counter = hit_counter
 
+    def cleanup_duplicate_tasks(self, info_hash: str) -> None:
+        try:
+            all_tasks = self.task_repo.find_by_info_hash(info_hash)
+            groups: dict[tuple[str, str | None], list[TaskDocument]] = {}
+            for t in all_tasks:
+                key = (t.task_type, t.tracker_url)
+                groups.setdefault(key, []).append(t)
+
+            status_priority = {
+                "claimed": 0,
+                "scraping": 1,
+                "pending": 2,
+                "completed": 3,
+                "failed": 4,
+            }
+            for key, tasks in groups.items():
+                if len(tasks) <= 1:
+                    continue
+                tasks.sort(
+                    key=lambda x: (
+                        status_priority.get(x.status, 5),
+                        -(x.created_at.timestamp() if x.created_at else 0),
+                    )
+                )
+                for old_task in tasks[1:]:
+                    if old_task.status not in ("claimed", "scraping"):
+                        self.task_repo.delete(old_task.id)
+                        logger.debug(
+                            "Cleaned up duplicate task %s (type: %s, status: %s) for info_hash %s",
+                            old_task.id,
+                            old_task.task_type,
+                            old_task.status,
+                            info_hash,
+                        )
+        except Exception:
+            logger.debug(
+                "Failed to cleanup duplicate tasks for info_hash %s",
+                info_hash,
+                exc_info=True,
+            )
+
     def claim_task(self) -> TaskClaimResponse | None:
         now = datetime.now(UTC)
         all_tasks = self.task_repo.find_claimable()
@@ -88,6 +129,7 @@ class TaskClaimController:
         )
 
         task = candidates[0]
+        self.cleanup_duplicate_tasks(task.info_hash)
         logger.debug(
             "Selected top candidate task %s (type: %s) out of %d candidates.",
             task.id,

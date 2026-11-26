@@ -209,7 +209,7 @@ def test_get_torrent_renew_failed_scrape_torrent_cooldown_expired():
     meta = TorrentMetadata(info_hash=VALID_HASH)
     mock_repo.get_or_create.return_value = (meta, False)
 
-    past = (datetime.now(UTC) - timedelta(hours=15)).isoformat()
+    past = datetime.now(UTC) - timedelta(hours=15)
     old_task = TaskDocument(
         _id="task-old",
         info_hash=VALID_HASH,
@@ -230,7 +230,7 @@ def test_get_torrent_renew_failed_scrape_torrent_cooldown_expired():
         app.dependency_overrides.clear()
 
     assert response.status_code == 200
-    mock_task_repo.delete.assert_called_once_with("task-old")
+    mock_task_repo.delete.assert_not_called()
     mock_task_repo.save.assert_called()
 
 
@@ -249,7 +249,7 @@ def test_get_torrent_no_renew_failed_scrape_torrent_cooldown_active():
     meta = TorrentMetadata(info_hash=VALID_HASH)
     mock_repo.get_or_create.return_value = (meta, False)
 
-    recent = (datetime.now(UTC) - timedelta(minutes=10)).isoformat()
+    recent = datetime.now(UTC) - timedelta(minutes=10)
     old_task = TaskDocument(
         _id="task-old",
         info_hash=VALID_HASH,
@@ -288,7 +288,7 @@ def test_get_torrent_no_renew_completed_scrape_torrent():
     meta = TorrentMetadata(info_hash=VALID_HASH)
     mock_repo.get_or_create.return_value = (meta, False)
 
-    past = (datetime.now(UTC) - timedelta(hours=20)).isoformat()
+    past = datetime.now(UTC) - timedelta(hours=20)
     completed_task = TaskDocument(
         _id="task-completed",
         info_hash=VALID_HASH,
@@ -329,7 +329,7 @@ def test_get_torrent_renew_scrape_stats_cooldown_expired():
     )
     mock_repo.get_or_create.return_value = (meta, False)
 
-    past = (datetime.now(UTC) - timedelta(hours=7)).isoformat()
+    past = datetime.now(UTC) - timedelta(hours=7)
     stats_task = TaskDocument(
         _id="task-stats",
         info_hash=VALID_HASH,
@@ -366,4 +366,5 @@ def test_get_torrent_renew_scrape_stats_cooldown_expired():
         app.dependency_overrides.clear()
 
     assert response.status_code == 200
-    mock_task_repo.delete.assert_called_with("task-stats")
+    mock_task_repo.delete.assert_not_called()
+    mock_task_repo.save.assert_called()

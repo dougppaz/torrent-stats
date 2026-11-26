@@ -100,9 +100,9 @@ def test_worker_claim_task_success():
     def update_mock_task(
         task_id: str,
         status: str,
-        lease_expires_at: str | None = None,
-        claimed_at: str | None = None,
-        last_attempt_at: str | None = None,
+        lease_expires_at: datetime | None = None,
+        claimed_at: datetime | None = None,
+        last_attempt_at: datetime | None = None,
         error_message: str | None = None,
     ) -> TaskDocument:
         task.status = status
@@ -158,8 +158,8 @@ def test_worker_claim_task_expired_lease_and_cooldowns():
     mock_worker_key_repo.find_by_key_hash.return_value = WorkerKey(
         _id="hash1", key_hash="hash1"
     )
-    past = (datetime.now(UTC) - timedelta(hours=2)).isoformat()
-    recent = datetime.now(UTC).isoformat()
+    past = datetime.now(UTC) - timedelta(hours=2)
+    recent = datetime.now(UTC)
 
     torrent = TorrentMetadata(
         info_hash="abc999",
@@ -194,9 +194,9 @@ def test_worker_claim_task_expired_lease_and_cooldowns():
     def update_mock_expired(
         task_id: str,
         status: str,
-        lease_expires_at: str | None = None,
-        claimed_at: str | None = None,
-        last_attempt_at: str | None = None,
+        lease_expires_at: datetime | None = None,
+        claimed_at: datetime | None = None,
+        last_attempt_at: datetime | None = None,
         error_message: str | None = None,
     ) -> TaskDocument:
         task_expired.status = status
@@ -379,9 +379,9 @@ def test_worker_task_fail_success():
     def update_mock_fail(
         task_id: str,
         status: str,
-        lease_expires_at: str | None = None,
-        claimed_at: str | None = None,
-        last_attempt_at: str | None = None,
+        lease_expires_at: datetime | None = None,
+        claimed_at: datetime | None = None,
+        last_attempt_at: datetime | None = None,
         error_message: str | None = None,
     ) -> TaskDocument:
         task.status = status

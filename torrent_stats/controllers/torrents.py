@@ -48,33 +48,37 @@ class TorrentController:
         existing_tasks = self.task_repository.find_by_info_hash(hash)
 
         # Scrape torrent task management and renewal
-        scrape_torrent_task = next(
-            (t for t in existing_tasks if t.task_type == "scrape_torrent"), None
+        active_scrape_torrent = next(
+            (
+                t
+                for t in existing_tasks
+                if t.task_type == "scrape_torrent"
+                and t.status in ("pending", "claimed", "scraping")
+            ),
+            None,
         )
-        if not scrape_torrent_task:
-            self.task_repository.save(
-                TaskDocument(
-                    info_hash=hash,
-                    task_type="scrape_torrent",
-                    status="pending",
-                    created_at=current_request_timestamp,
-                )
+        if not active_scrape_torrent:
+            latest_scrape_torrent = next(
+                (t for t in existing_tasks if t.task_type == "scrape_torrent"), None
             )
-        elif (
-            scrape_torrent_task.status == "failed"
-            and scrape_torrent_task.last_attempt_at
-            and (now - scrape_torrent_task.last_attempt_at).total_seconds()
-            >= worker_settings.worker_scrape_torrent_failure_cooldown_seconds
-        ):
-            self.task_repository.delete(scrape_torrent_task.id)
-            self.task_repository.save(
-                TaskDocument(
-                    info_hash=hash,
-                    task_type="scrape_torrent",
-                    status="pending",
-                    created_at=current_request_timestamp,
+            should_create_torrent = False
+            if not latest_scrape_torrent or (
+                latest_scrape_torrent.status == "failed"
+                and latest_scrape_torrent.last_attempt_at
+                and (now - latest_scrape_torrent.last_attempt_at).total_seconds()
+                >= worker_settings.worker_scrape_torrent_failure_cooldown_seconds
+            ):
+                should_create_torrent = True
+
+            if should_create_torrent:
+                self.task_repository.save(
+                    TaskDocument(
+                        info_hash=hash,
+                        task_type="scrape_torrent",
+                        status="pending",
+                        created_at=current_request_timestamp,
+                    )
                 )
-            )
 
         combined_trackers = set(trackers_settings.default_trackers)
         if trackers is not None:
@@ -90,40 +94,45 @@ class TorrentController:
 
         all_tracker_urls = {ts.tracker_url for ts in existing_tracker_docs}
         for tr in all_tracker_urls:
-            stat_task = next(
+            active_stat_task = next(
                 (
                     t
                     for t in existing_tasks
-                    if t.task_type == "scrape_stats" and t.tracker_url == tr
+                    if t.task_type == "scrape_stats"
+                    and t.tracker_url == tr
+                    and t.status in ("pending", "claimed", "scraping")
                 ),
                 None,
             )
-            if not stat_task:
-                self.task_repository.save(
-                    TaskDocument(
-                        info_hash=hash,
-                        task_type="scrape_stats",
-                        status="pending",
-                        tracker_url=tr,
-                        tracker_updated_at=None,
-                        created_at=current_request_timestamp,
+            if not active_stat_task:
+                latest_stat_task = next(
+                    (
+                        t
+                        for t in existing_tasks
+                        if t.task_type == "scrape_stats" and t.tracker_url == tr
+                    ),
+                    None,
+                )
+                should_create_stat = False
+                if not latest_stat_task:
+                    should_create_stat = True
+                elif latest_stat_task.status in ("completed", "failed"):
+                    ref_dt = (
+                        latest_stat_task.tracker_updated_at
+                        or latest_stat_task.last_attempt_at
+                        or latest_stat_task.updated_at
+                        or latest_stat_task.created_at
                     )
-                )
-            elif stat_task.status in ("completed", "failed"):
-                ref_dt = (
-                    stat_task.tracker_updated_at
-                    or stat_task.last_attempt_at
-                    or stat_task.updated_at
-                    or stat_task.created_at
-                )
-                should_renew = True
-                if ref_dt and (
-                    (now - ref_dt).total_seconds()
-                    < worker_settings.worker_scrape_stats_cooldown_seconds
-                ):
-                    should_renew = False
-                if should_renew:
-                    self.task_repository.delete(stat_task.id)
+                    should_renew = True
+                    if ref_dt and (
+                        (now - ref_dt).total_seconds()
+                        < worker_settings.worker_scrape_stats_cooldown_seconds
+                    ):
+                        should_renew = False
+                    if should_renew:
+                        should_create_stat = True
+
+                if should_create_stat:
                     self.task_repository.save(
                         TaskDocument(
                             info_hash=hash,
