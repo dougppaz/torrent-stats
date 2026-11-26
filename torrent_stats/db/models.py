@@ -49,8 +49,12 @@ class TaskDocument(BaseModel):
     @model_validator(mode="after")
     def set_id(self) -> TaskDocument:
         if not self.id:
+            from uuid import uuid4
+
             suffix = f"-{abs(hash(self.tracker_url))}" if self.tracker_url else ""
-            self.id = f"task-{self.info_hash}-{self.task_type}{suffix}"
+            self.id = (
+                f"task-{self.info_hash}-{self.task_type}{suffix}-{uuid4().hex[:8]}"
+            )
         return self
 
     model_config = {"populate_by_name": True, "extra": "ignore"}
